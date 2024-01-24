@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.css": "css",
+        "*.js": "javascript",
+        "*.html": "html",
+        "ctime": "cpp"
+    }
+}

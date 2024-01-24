@@ -6,7 +6,7 @@ More details are available [here as a report](http://avisingh599.github.io/asset
 [here as a blog post](http://avisingh599.github.io/vision/monocular-vo/). 
 
 Note that this project is not yet capable of doing reliable relative scale estimation, 
-so the scale informaion is extracted from the KITTI dataset ground truth files.
+so the scale information is extracted from the KITTI dataset ground truth files.
 
 ## Demo Video
 
