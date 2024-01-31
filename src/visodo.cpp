@@ -99,9 +99,22 @@ int main( int argc, char** argv )	{
   Mat img_1_c = imread(filename1);
   Mat img_2_c = imread(filename2);
 
-  if ( !img_1_c.data || !img_2_c.data ) { 
-    std::cout<< " --(!) Error reading images " << std::endl; return -1;
+  if (!img_1_c.data )
+  {
+    printf(filename1);
+    std::cout<< " --(!) Error reading images1 " << std::endl; return -1;
   }
+  if (!img_2_c.data)
+  {
+    printf(filename2);
+    std::cout<< " --(!) Error reading images2 " << std::endl; return -1;
+    
+  }
+  
+  
+  // if ( !img_1_c.data || !img_2_c.data ) { 
+  //   std::cout<< " --(!) Error reading images " << std::endl; return -1;
+  // }
 
   // we work with grayscale images
   cvtColor(img_1_c, img_1, COLOR_BGR2GRAY);
