@@ -32,7 +32,7 @@ using namespace std;
 #define MAX_FRAME 1000
 #define MIN_NUM_FEAT 2000
 
-//TODO: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
+//FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/home/addwood1/Documents/KITTI_dataset/dataset/poses/01.txt";
 string dataset_path  = "/home/addwood1/Documents/KITTI_dataset/dataset/sequences/01/image_2/";
 
@@ -42,7 +42,7 @@ double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
   
   string line;
   int i = 0;
-  ifstream myfile (groundtruth_path); //TODO: change path to file, data currently does not exist (this is groundtruth)
+  ifstream myfile (groundtruth_path);
   double x =0, y=0, z = 0;
   double x_prev, y_prev, z_prev;
   if (myfile.is_open())
@@ -86,8 +86,8 @@ int main( int argc, char** argv )	{
   double scale = 1.00;
   char filename1[200];
   char filename2[200];
-  sprintf(filename1, (dataset_path+"%06d.png").c_str(), 0); //TODO: change path to file, data currently does not exist
-  sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); //TODO: change path to file, data currently does not exist
+  sprintf(filename1, (dataset_path+"%06d.png").c_str(), 0); //TODO: change path to file, data currently does not exist and make sure to properly format
+  sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); //TODO: change path to file, data currently does not exist 
 
   char text[100];
   int fontFace = FONT_HERSHEY_PLAIN;
@@ -113,7 +113,6 @@ int main( int argc, char** argv )	{
   vector<uchar> status;
   featureTracking(img_1,img_2,points1,points2, status); //track those features to img_2
 
-  //TODO: add a function to load these values directly from KITTI's calib files
   // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
   double focal = 718.8560;
   cv::Point2d pp(607.1928, 185.2157);
