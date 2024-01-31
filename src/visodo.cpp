@@ -34,7 +34,7 @@ using namespace std;
 
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/home/addwood1/Documents/KITTI_dataset/dataset/poses/01.txt";
-string dataset_path  = "/home/addwood1/Documents/KITTI_dataset/dataset/sequences/01/image_2/";
+string dataset_path  = "/creek_2/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -86,8 +86,8 @@ int main( int argc, char** argv )	{
   double scale = 1.00;
   char filename1[200];
   char filename2[200];
-  sprintf(filename1, (dataset_path+"%06d.png").c_str(), 0); //TODO: change path to file, data currently does not exist and make sure to properly format
-  sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); //TODO: change path to file, data currently does not exist 
+  sprintf(filename1, (dataset_path+"%06d.png").c_str(), 0);
+  sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); 
 
   char text[100];
   int fontFace = FONT_HERSHEY_PLAIN;
@@ -160,7 +160,8 @@ int main( int argc, char** argv )	{
   		currPts.at<double>(1,i) = currFeatures.at(i).y;
     }
 
-  	scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
+  	// scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
+    scale = 1;
 
     //cout << "Scale is " << scale << endl;
 
