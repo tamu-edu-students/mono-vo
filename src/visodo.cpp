@@ -32,13 +32,17 @@ using namespace std;
 #define MAX_FRAME 1000
 #define MIN_NUM_FEAT 2000
 
+//TODO: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
+string groundtruth_path = "/home/addwood1/Documents/KITTI_dataset/dataset/poses/01.txt";
+string dataset_path  = "/home/addwood1/Documents/KITTI_dataset/dataset/sequences/01/image_2/";
+
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
 double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
   
   string line;
   int i = 0;
-  ifstream myfile ("/home/avisingh/Datasets/KITTI_VO/00.txt"); //TODO: change path to file, data currently does not exist
+  ifstream myfile (groundtruth_path); //TODO: change path to file, data currently does not exist (this is groundtruth)
   double x =0, y=0, z = 0;
   double x_prev, y_prev, z_prev;
   if (myfile.is_open())
@@ -77,13 +81,13 @@ int main( int argc, char** argv )	{
   Mat R_f, t_f; //the final rotation and tranlation vectors containing the 
 
   ofstream myfile;
-  myfile.open ("results1_1.txt");
+  myfile.open ("results1_1.txt"); //open up predicted
 
   double scale = 1.00;
   char filename1[200];
   char filename2[200];
-  sprintf(filename1, "/home/avisingh/Datasets/KITTI_VO/00/image_2/%06d.png", 0); //FIXME: Fix image path
-  sprintf(filename2, "/home/avisingh/Datasets/KITTI_VO/00/image_2/%06d.png", 1);
+  sprintf(filename1, (dataset_path+"%06d.png").c_str(), 0); //TODO: change path to file, data currently does not exist
+  sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); //TODO: change path to file, data currently does not exist
 
   char text[100];
   int fontFace = FONT_HERSHEY_PLAIN;
@@ -109,7 +113,7 @@ int main( int argc, char** argv )	{
   vector<uchar> status;
   featureTracking(img_1,img_2,points1,points2, status); //track those features to img_2
 
-  //TODO: add a fucntion to load these values directly from KITTI's calib files
+  //TODO: add a function to load these values directly from KITTI's calib files
   // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
   double focal = 718.8560;
   cv::Point2d pp(607.1928, 185.2157);
@@ -136,7 +140,7 @@ int main( int argc, char** argv )	{
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
   for(int numFrame=2; numFrame < MAX_FRAME; numFrame++)	{
-  	sprintf(filename, "/home/avisingh/Datasets/KITTI_VO/00/image_2/%06d.png", numFrame);
+  	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); //TODO: change path to file, data currently does not exist
     //cout << numFrame << endl;
   	Mat currImage_c = imread(filename);
   	cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
