@@ -98,27 +98,29 @@ int main( int argc, char** argv )	{
   //read the first two frames from the dataset
   Mat img_1_c = imread(filename1);
   Mat img_2_c = imread(filename2);
+  
 
-  if (!img_1_c.data )
-  {
-    printf(filename1);
-    std::cout<< " --(!) Error reading images1 " << std::endl; return -1;
+
+  if ( !img_1_c.data || !img_2_c.data ) { 
+    std::cout<< " --(!) Error reading images " << std::endl; return -1;
   }
-  if (!img_2_c.data)
-  {
-    printf(filename2);
-    std::cout<< " --(!) Error reading images2 " << std::endl; return -1;
-    
+
+  if (img_1_c.empty()) {
+      std::cout << "Error: img_1_c is empty." << std::endl;
+      return -1;
   }
-  
-  
-  // if ( !img_1_c.data || !img_2_c.data ) { 
-  //   std::cout<< " --(!) Error reading images " << std::endl; return -1;
-  // }
+
+  if (img_2_c.empty()) {
+      std::cout << "Error: img_2_c is empty." << std::endl;
+      return -1;
+  }
 
   // we work with grayscale images
-  cvtColor(img_1_c, img_1, COLOR_BGR2GRAY);
-  cvtColor(img_2_c, img_2, COLOR_BGR2GRAY);
+  cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
+  cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
+
+  img_1 = img_1_c;
+  img_2 = img_2_c;
 
   // feature detection, tracking
   vector<Point2f> points1, points2;        //vectors to store the coordinates of the feature points
@@ -151,10 +153,17 @@ int main( int argc, char** argv )	{
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
+  //FIXME: make sure that numFrame matches up with current no of frames in file
   for(int numFrame=2; numFrame < MAX_FRAME; numFrame++)	{
-  	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); //TODO: change path to file, data currently does not exist
+  	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
     //cout << numFrame << endl;
   	Mat currImage_c = imread(filename);
+    std::cout << numFrame << std::endl;
+    if (currImage_c.empty()) {
+        std::cout << "Error: curr img is empty." << std::endl;
+        return -1;
+    }
+
   	cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
   	vector<uchar> status;
   	featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
