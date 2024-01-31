@@ -34,7 +34,7 @@ using namespace std;
 
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/home/addwood1/Documents/KITTI_dataset/dataset/poses/01.txt";
-string dataset_path  = "/creek_2/";
+string dataset_path  = "/workspaces/mono-vo/creek_2/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
