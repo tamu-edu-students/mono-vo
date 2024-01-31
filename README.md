@@ -1,4 +1,4 @@
-This is an OpenCV 3.0 based implementation of a monocular visual odometry algorithm.
+This is an OpenCV 4.9 based implementation of a monocular visual odometry algorithm.
 
 ## Algorithm
 Uses Nister's Five Point Algorithm for Essential Matrix estimation, and FAST features, with a KLT tracker.
@@ -14,7 +14,7 @@ so the scale information is extracted from the KITTI dataset ground truth files.
 
 
 ## Requirements
-OpenCV 3.0
+OpenCV 4.9
 
 ## How to compile?
 Provided with this repo is a CMakeLists.txt file, which you can use to directly compile the code as follows:
