@@ -47,7 +47,7 @@ double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
   double x_prev, y_prev, z_prev;
   if (myfile.is_open())
   {
-    while (( getline (myfile,line) ) && (i<=frame_id))
+    while (( getline (myfile,line) ) && (i<=frame_id)) //map out the scale of ground truth
     {
       z_prev = z;
       x_prev = x;
