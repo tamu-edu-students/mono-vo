@@ -85,3 +85,11 @@ void featureDetection(Mat img_1, vector<Point2f>& points1)	{   //uses FAST as of
   FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
   KeyPoint::convert(keypoints_1, points1, vector<int>());
 }
+
+void AGASTDetection(Mat img_1, vector<Point2f>& points1)	{   //uses AGAST as of now, modify parameters as necessary
+  vector<KeyPoint> keypoints_1;
+  int fast_threshold = 20;
+  bool nonmaxSuppression = true;
+  AGAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
+  KeyPoint::convert(keypoints_1, points1, vector<int>());
+}
