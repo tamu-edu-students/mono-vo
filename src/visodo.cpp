@@ -125,8 +125,8 @@ int main( int argc, char** argv )	{
 
   // feature detection, tracking
   vector<Point2f> points1, points2;        //vectors to store the coordinates of the feature points
-  featureDetection(img_1, points1);        //detect features in img_1
-  // AGASTDetection(img_1, points1);
+  // featureDetection(img_1, points1);        //detect features in img_1
+  AGASTDetection(img_1, points1);
 
   vector<uchar> status;
   featureTracking(img_1,img_2,points1,points2, status); //track those features to img_2
@@ -188,7 +188,7 @@ int main( int argc, char** argv )	{
   	// scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
     scale = 1;
 
-    cout << "Scale is " << scale << endl;
+    // cout << "Scale is " << scale << endl;
 
     if ((scale>0.1)&&(t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1))) {
 
@@ -208,8 +208,8 @@ int main( int argc, char** argv )	{
  	  if (prevFeatures.size() < MIN_NUM_FEAT)	{
       //cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
       //cout << "trigerring redection" << endl;
- 		  featureDetection(prevImage, prevFeatures);
- 		  // AGASTDetection(prevImage, prevFeatures);
+ 		  // featureDetection(prevImage, prevFeatures);
+ 		  AGASTDetection(prevImage, prevFeatures);
 
       featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
 
@@ -223,6 +223,9 @@ int main( int argc, char** argv )	{
     circle(traj, Point(x, y) ,1, CV_RGB(255,0,0), 2);
 
     rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), FILLED);
+    //display label on trajectory
+
+
     sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
     putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
 
