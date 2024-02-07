@@ -33,7 +33,8 @@ using namespace std;
 #define MIN_NUM_FEAT 2000
 
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
-string groundtruth_path = "/home/addwood1/Documents/KITTI_dataset/dataset/poses/01.txt";
+string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
+
 string dataset_path  = "/workspaces/mono-vo/creek/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
@@ -199,7 +200,7 @@ int main( int argc, char** argv )	{
     }
     
    // lines for printing results
-   // myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
+   myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
 
   // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
  	  if (prevFeatures.size() < MIN_NUM_FEAT)	{
