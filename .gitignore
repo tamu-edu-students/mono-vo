@@ -1,1 +1,4 @@
 /build
+/creek/*
+/creek_2/*
+.vscode/*

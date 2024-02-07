@@ -34,7 +34,7 @@ using namespace std;
 
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/home/addwood1/Documents/KITTI_dataset/dataset/poses/01.txt";
-string dataset_path  = "/workspaces/mono-vo/creek_2/";
+string dataset_path  = "/workspaces/mono-vo/creek/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -154,11 +154,11 @@ int main( int argc, char** argv )	{
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
   //FIXME: make sure that numFrame matches up with current no of frames in file
-  for(int numFrame=2; numFrame < MAX_FRAME; numFrame++)	{
+  for(int numFrame=2; numFrame < 250; numFrame++)	{
   	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
     //cout << numFrame << endl;
   	Mat currImage_c = imread(filename);
-    std::cout << numFrame << std::endl;
+    // std::cout << numFrame << std::endl;
     if (currImage_c.empty()) {
         std::cout << "Error: curr img is empty." << std::endl;
         return -1;
