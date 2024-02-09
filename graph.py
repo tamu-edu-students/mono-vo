@@ -25,4 +25,5 @@ with open('GT_FAST/results1_1.txt', 'r') as f:
 
 plt.plot(fast_xpoints, fast_ypoints)
 plt.plot(agast_xpoints, agast_ypoints, color='red')
+plt.legend(['FAST (ground truth)', 'AGAST'], loc='upper left')
 plt.show()
