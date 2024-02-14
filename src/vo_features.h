@@ -24,11 +24,17 @@ THE SOFTWARE.
 
 */
 
-#include "opencv2/video/tracking.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
+//FIXME: THIS TESTS TO SEE IF WE HAVE THE INCLUDE PATH WORKING
+#include "opencv2/opencv.hpp"
+#include "opencv2/xfeatures2d.hpp"
+
+// #include "opencv2/video/tracking.hpp"
+// #include "opencv2/imgproc/imgproc.hpp"
+// #include "opencv2/highgui/highgui.hpp"
+// #include "opencv2/features2d/features2d.hpp"
+// #include "opencv2/calib3d/calib3d.hpp"
+// #include "opencv2/calib3d/calib3d.hpp"
+
 
 
 #include <iostream>
@@ -77,5 +83,13 @@ void featureDetection(Mat img_1, vector<Point2f>& points1)	{   //uses FAST as of
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
   FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
+  KeyPoint::convert(keypoints_1, points1, vector<int>());
+}
+
+void AGASTDetection(Mat img_1, vector<Point2f>& points1)	{   //uses AGAST as of now, modify parameters as necessary
+  vector<KeyPoint> keypoints_1;
+  int fast_threshold = 20;
+  bool nonmaxSuppression = true;
+  AGAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
   KeyPoint::convert(keypoints_1, points1, vector<int>());
 }
