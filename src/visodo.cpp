@@ -97,9 +97,24 @@ int main( int argc, char** argv )	{
   char filename2[200];
 
   dp = readdir(dir);
-  dp = (strstr(dp->d_name, ".cu3") != NULL) ? dp : readdir(dir);
-  sprintf(filename1, dp->d_name/*(dataset_path+"%06d.png").c_str()*/, 0);
-  sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); 
+  while((dp = readdir (dir)) != NULL){
+    if (strstr(dp->d_name, ".cu3") != NULL)
+    {
+      break;
+    }
+  }
+  
+  strcpy(filename1, dp->d_name);
+  
+  dp = readdir(dir);
+  while((dp = readdir (dir)) != NULL){
+    if (strstr(dp->d_name, ".cu3") != NULL)
+    {
+      break;
+    }
+  }
+
+  strcpy(filename2, dp->d_name); 
 
   char text[100];
   int fontFace = FONT_HERSHEY_PLAIN;
@@ -108,10 +123,31 @@ int main( int argc, char** argv )	{
   cv::Point textOrg(10, 50);
 
   //read the first two frames from the dataset
-  Mat img_1_c = imread(filename1);
-  Mat img_2_c = imread(filename2);
-  
+  //converts png to mat
+  HyperFunctionsCuvis HyperFunctions1;
+  HyperFunctions1.false_img_b=2;
+  HyperFunctions1.false_img_g=13;
+  HyperFunctions1.false_img_r=31;
 
+
+  HyperFunctions1.cubert_img = dataset_path + filename1;
+  HyperFunctions1.dark_img = "../../HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
+  HyperFunctions1.white_img = "../../HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
+  HyperFunctions1.dist_img = "../../HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
+
+  HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+  HyperFunctions1.GenerateFalseImg();
+
+  Mat img_1_c = HyperFunctions1.false_img;
+  imshow("test",  HyperFunctions1.false_img);
+  cv::waitKey();
+
+  HyperFunctions1.cubert_img = dataset_path + filename2;
+  HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+  HyperFunctions1.GenerateFalseImg();
+  imshow("test",  HyperFunctions1.false_img);
+  cv::waitKey();
+  Mat img_2_c = HyperFunctions1.false_img;
 
   if ( !img_1_c.data || !img_2_c.data ) { 
     std::cout<< " --(!) Error reading images " << std::endl; return -1;
@@ -126,6 +162,7 @@ int main( int argc, char** argv )	{
       std::cout << "Error: img_2_c is empty." << std::endl;
       return -1;
   }
+
 
   // we work with grayscale images
   cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
