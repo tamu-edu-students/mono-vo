@@ -35,7 +35,7 @@ using namespace std;
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-string dataset_path  = "/workspaces/mono-vo/creek/";
+string dataset_path  = "/workspaces/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
