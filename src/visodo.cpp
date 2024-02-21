@@ -131,9 +131,10 @@ int main( int argc, char** argv )	{
 
 
   HyperFunctions1.cubert_img = dataset_path + filename1;
-  HyperFunctions1.dark_img = "../../HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
-  HyperFunctions1.white_img = "../../HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
-  HyperFunctions1.dist_img = "../../HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
+  HyperFunctions1.dark_img = "../../HyperImages/teagarden/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
+  HyperFunctions1.white_img = "../../HyperImages/teagarden/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
+  HyperFunctions1.dist_img = "../../HyperImages/teagarden/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
+
 
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
