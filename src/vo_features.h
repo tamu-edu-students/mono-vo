@@ -27,6 +27,9 @@ THE SOFTWARE.
 //FIXME: THIS TESTS TO SEE IF WE HAVE THE INCLUDE PATH WORKING
 #include "opencv2/opencv.hpp"
 #include "opencv2/xfeatures2d.hpp"
+#include "../../src/hyperfunctions.h"
+#include "../../src/hypercuvisfunctions.h"
+
 
 // #include "opencv2/video/tracking.hpp"
 // #include "opencv2/imgproc/imgproc.hpp"

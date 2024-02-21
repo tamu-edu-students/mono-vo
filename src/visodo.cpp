@@ -25,6 +25,7 @@ THE SOFTWARE.
 */
 
 #include "vo_features.h"
+#include "cuvis.hpp"
 
 using namespace cv;
 using namespace std;
@@ -35,7 +36,7 @@ using namespace std;
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-string dataset_path  = "/workspaces/mono-vo/creek/";
+string dataset_path  = "/workspaces/HyperImages/teagarden/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -125,8 +126,8 @@ int main( int argc, char** argv )	{
 
   // feature detection, tracking
   vector<Point2f> points1, points2;        //vectors to store the coordinates of the feature points
-  // featureDetection(img_1, points1);        //detect features in img_1
-  AGASTDetection(img_1, points1);
+  featureDetection(img_1, points1);        //detect features in img_1
+  // AGASTDetection(img_1, points1);
 
   vector<uchar> status;
   featureTracking(img_1,img_2,points1,points2, status); //track those features to img_2
@@ -158,6 +159,17 @@ int main( int argc, char** argv )	{
 
   //FIXME: make sure that numFrame matches up with current no of frames in file
   for(int numFrame=2; numFrame < 250; numFrame++)	{
+    HyperFunctionsCuvis HyperFunctions1;
+    HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
+
+    HyperFunctions1.false_img_b=2;
+    HyperFunctions1.false_img_g=13;
+    HyperFunctions1.false_img_r=31;
+    HyperFunctions1.GenerateFalseImg();
+    imshow("test",  HyperFunctions1.false_img);
+    cv::waitKey();
+    // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
+
   	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
     //cout << numFrame << endl;
   	Mat currImage_c = imread(filename);
@@ -208,8 +220,8 @@ int main( int argc, char** argv )	{
  	  if (prevFeatures.size() < MIN_NUM_FEAT)	{
       //cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
       //cout << "trigerring redection" << endl;
- 		  // featureDetection(prevImage, prevFeatures);
- 		  AGASTDetection(prevImage, prevFeatures);
+ 		  featureDetection(prevImage, prevFeatures);
+ 		  // AGASTDetection(prevImage, prevFeatures);
 
       featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
 
