@@ -25,7 +25,6 @@ THE SOFTWARE.
 */
 
 #include "vo_features.h"
-#include "cuvis.hpp"
 
 using namespace cv;
 using namespace std;
@@ -36,7 +35,7 @@ using namespace std;
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-string dataset_path  = "/workspaces/HyperImages/teagarden/";
+string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -86,9 +85,20 @@ int main( int argc, char** argv )	{
   myfile.open ("results1_1.txt"); //open up predicted
 
   double scale = 1.00;
+  DIR *dir;
+  struct dirent *dp;
+
+  if ((dir = opendir (dataset_path.c_str())) == NULL) {
+      perror ("Cannot open datasets.");
+      exit (1);
+  }
+
   char filename1[200];
   char filename2[200];
-  sprintf(filename1, (dataset_path+"%06d.png").c_str(), 0);
+
+  dp = readdir(dir);
+  dp = (strstr(dp->d_name, ".cu3") != NULL) ? dp : readdir(dir);
+  sprintf(filename1, dp->d_name/*(dataset_path+"%06d.png").c_str()*/, 0);
   sprintf(filename2, (dataset_path+"%06d.png").c_str(), 1); 
 
   char text[100];
@@ -159,6 +169,8 @@ int main( int argc, char** argv )	{
 
   //FIXME: make sure that numFrame matches up with current no of frames in file
   for(int numFrame=2; numFrame < 250; numFrame++)	{
+
+    //TODO: accesss
     HyperFunctionsCuvis HyperFunctions1;
     HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
 
