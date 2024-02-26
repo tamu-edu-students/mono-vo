@@ -131,9 +131,10 @@ int main( int argc, char** argv )	{
 
 
   HyperFunctions1.cubert_img = dataset_path + filename1;
-  HyperFunctions1.dark_img = "../../HyperImages/teagarden/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
-  HyperFunctions1.white_img = "../../HyperImages/teagarden/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
-  HyperFunctions1.dist_img = "../../HyperImages/teagarden/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
+  // FIXME: check if calibration files work
+  HyperFunctions1.dark_img = "/workspaces/HyperImages/teagarden/Calibration/dark__session_000_004_snapshot16508633606439133.cu3";
+  HyperFunctions1.white_img = "/workspaces/HyperImages/teagarden/Calibration/white__session_000_001_snapshot16508633113530160.cu3";
+  HyperFunctions1.dist_img = ""; // FIXME: add calibration file
 
 
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
