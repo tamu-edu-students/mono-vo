@@ -33,22 +33,6 @@ file(GLOB viso
     "src/*.h"
     "src/*.cpp"
 )
-# else (use_cuvis)
-#     add_executable(vo src/visodo.cpp)
-#     include_directories( ${OpenCV_INCLUDE_DIRS} )
-
-#     file(GLOB viso
-#         "src/*.h"
-#         "src/*.cpp"
-#     )
-# endif()
-# add_executable( vo ${viso} )
-# target_link_libraries( vo ${OpenCV_LIBS} )
-
-# set(SOURCE_FILES
-#     hyperfunctions.cpp
-#     hypercuvisfunctions.cpp
-# )
 
 if (use_cuvis)
     add_executable(vo ${viso})
