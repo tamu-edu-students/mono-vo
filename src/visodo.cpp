@@ -32,146 +32,145 @@ using namespace std;
 #define MAX_FRAME 1000
 #define MIN_NUM_FEAT 2000
 
-//FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
+// FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
 // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
-string dataset_path  = "/workspaces/HyperImages/cornfields/session_002/";
+string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
-double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
-  
+double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)
+{
+
   string line;
   int i = 0;
-  ifstream myfile (groundtruth_path);
-  double x =0, y=0, z = 0;
+  ifstream myfile(groundtruth_path);
+  double x = 0, y = 0, z = 0;
   double x_prev, y_prev, z_prev;
   if (myfile.is_open())
   {
-    while (( getline (myfile,line) ) && (i<=frame_id)) //map out the scale of ground truth
+    while ((getline(myfile, line)) && (i <= frame_id)) // map out the scale of ground truth
     {
       z_prev = z;
       x_prev = x;
       y_prev = y;
       std::istringstream in(line);
-      //cout << line << '\n';
-      for (int j=0; j<12; j++)  {
-        in >> z ;
-        if (j==7) y=z;
-        if (j==3)  x=z;
+      // cout << line << '\n';
+      for (int j = 0; j < 12; j++)
+      {
+        in >> z;
+        if (j == 7)
+          y = z;
+        if (j == 3)
+          x = z;
       }
-      
+
       i++;
     }
     myfile.close();
   }
 
-  else {
+  else
+  {
     cout << "Unable to open file";
     return 0;
   }
 
-  return sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev)) ;
-
+  return sqrt((x - x_prev) * (x - x_prev) + (y - y_prev) * (y - y_prev) + (z - z_prev) * (z - z_prev));
 }
 
-
-int main( int argc, char** argv )	{
+int main(int argc, char **argv)
+{
 
   Mat img_1, img_2;
-  Mat R_f, t_f; //the final rotation and tranlation vectors containing the 
+  Mat R_f, t_f; // the final rotation and tranlation vectors containing the
 
   ofstream myfile;
-  myfile.open ("results1_1.txt"); //open up predicted
+  myfile.open("results1_1.txt"); // open up predicted
 
   double scale = 1.00;
   DIR *dir;
   struct dirent *dp;
 
-  if ((dir = opendir (dataset_path.c_str())) == NULL) {
-      perror ("Cannot open datasets.");
-      exit (1);
+  if ((dir = opendir(dataset_path.c_str())) == NULL)
+  {
+    perror("Cannot open datasets.");
+    exit(1);
   }
 
   char filename1[200];
   char filename2[200];
 
+  // image 1
   dp = readdir(dir);
-  while((dp = readdir (dir)) != NULL){
+  while ((dp = readdir(dir)) != NULL)
+  {
     if (strstr(dp->d_name, ".cu3") != NULL)
     {
       break;
     }
   }
-  
   strcpy(filename1, dp->d_name);
-  
+
+  // image 2
   dp = readdir(dir);
-  while((dp = readdir (dir)) != NULL){
+  while ((dp = readdir(dir)) != NULL)
+  {
     if (strstr(dp->d_name, ".cu3") != NULL)
     {
       break;
     }
   }
-
-  strcpy(filename2, dp->d_name); 
+  strcpy(filename2, dp->d_name);
 
   char text[100];
   int fontFace = FONT_HERSHEY_PLAIN;
   double fontScale = 1;
-  int thickness = 1;  
+  int thickness = 1;
   cv::Point textOrg(10, 50);
 
-  //read the first two frames from the dataset
-  //converts png to mat
+  // read the first two frames from the dataset
+  // converts png to mat
   HyperFunctionsCuvis HyperFunctions1;
   HyperFunctions1.cubert_img = dataset_path + filename1;
-  // HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
-
-  
-  //I change it to cornfields here because teagarden does not have a distance calib
-  // HyperFunctions1.dark_img = "../../HyperImages/teagarden/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
-  // HyperFunctions1.white_img = "../../HyperImages/teagarden/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
-  // HyperFunctions1.dist_img = "../../HyperImages/teagarden/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
-
   HyperFunctions1.dark_img = "/workspaces/HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
+  // FIXME: Currently issues with reprocess image
+  //  std::cout << dataset_path << filename1 << std::endl;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
-
-  HyperFunctions1.false_img_b=2;
-  HyperFunctions1.false_img_g=13;
-  HyperFunctions1.false_img_r=31;
+  HyperFunctions1.false_img_b = 2;
+  HyperFunctions1.false_img_g = 13;
+  HyperFunctions1.false_img_r = 31;
   HyperFunctions1.GenerateFalseImg();
 
   Mat img_1_c = HyperFunctions1.false_img;
-  // imshow("test",  HyperFunctions1.false_img);
-  // cv::waitKey();
 
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
 
-  // imshow("test",  HyperFunctions1.false_img);
-  // cv::waitKey();
   Mat img_2_c = HyperFunctions1.false_img;
 
-  if ( !img_1_c.data || !img_2_c.data ) { 
-    std::cout<< " --(!) Error reading images " << std::endl; return -1;
+  if (!img_1_c.data || !img_2_c.data)
+  {
+    std::cout << " --(!) Error reading images " << std::endl;
+    return -1;
   }
 
-  if (img_1_c.empty()) {
-      std::cout << "Error: img_1_c is empty." << std::endl;
-      return -1;
+  if (img_1_c.empty())
+  {
+    std::cout << "Error: img_1_c is empty." << std::endl;
+    return -1;
   }
 
-  if (img_2_c.empty()) {
-      std::cout << "Error: img_2_c is empty." << std::endl;
-      return -1;
+  if (img_2_c.empty())
+  {
+    std::cout << "Error: img_2_c is empty." << std::endl;
+    return -1;
   }
-
 
   // we work with grayscale images
   cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
@@ -181,17 +180,17 @@ int main( int argc, char** argv )	{
   img_2 = img_2_c;
 
   // feature detection, tracking
-  vector<Point2f> points1, points2;        //vectors to store the coordinates of the feature points
-  featureDetection(img_1, points1);        //detect features in img_1
+  vector<Point2f> points1, points2; // vectors to store the coordinates of the feature points
+  featureDetection(img_1, points1); // detect features in img_1
   // AGASTDetection(img_1, points1);
 
   vector<uchar> status;
-  featureTracking(img_1,img_2,points1,points2, status); //track those features to img_2
+  featureTracking(img_1, img_2, points1, points2, status); // track those features to img_2
 
   // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
   double focal = 718.8560;
   cv::Point2d pp(607.1928, 185.2157);
-  //recovering the pose and the essential matrix
+  // recovering the pose and the essential matrix
   Mat E, R, t, mask;
   E = findEssentialMat(points2, points1, focal, pp, RANSAC, 0.999, 1.0, mask);
   recoverPose(E, points2, points1, R, t, focal, pp, mask);
@@ -208,41 +207,31 @@ int main( int argc, char** argv )	{
 
   clock_t begin = clock();
 
-  namedWindow( "Road facing camera", WINDOW_AUTOSIZE );// Create a window for display.
-  namedWindow( "Trajectory", WINDOW_AUTOSIZE );// Create a window for display.
+  namedWindow("Road facing camera", WINDOW_AUTOSIZE); // Create a window for display.
+  namedWindow("Trajectory", WINDOW_AUTOSIZE);         // Create a window for display.
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
   
-  //FIXME: make sure that numFrame matches up with current no of frames in file, change this to while loop
-  // for(int numFrame=2; numFrame < 250; numFrame++)	{
-  while((dp = readdir (dir)) != NULL){
+    // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
+  while ((dp = readdir(dir)) != NULL)
+  {
     if (strstr(dp->d_name, ".cu3") != NULL)
     {
-  // }
-
-
-    // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
-
-  	// sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
-    strcpy(filename, dp->d_name);
-    HyperFunctions1.cubert_img = dataset_path + filename;
+      strcpy(filename, dp->d_name);
+      HyperFunctions1.cubert_img = dataset_path + filename;
 
     //cout << numFrame << endl;
     HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
     HyperFunctions1.GenerateFalseImg();
     
-  	// Mat currImage_c = imread(filename);
   	Mat currImage_c = HyperFunctions1.false_img;
-    // std::cout << numFrame << std::endl;
+
     if (currImage_c.empty()) {
         std::cout << "Error: curr img is empty." << std::endl;
         return -1;
     }
 
-
-    // imshow("test",  currImage_c);
-    // cv::waitKey();
   	cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
   	vector<uchar> status;
 
@@ -279,76 +268,85 @@ int main( int argc, char** argv )	{
     
   	recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
 
-    Mat prevPts(2,prevFeatures.size(), CV_64F), currPts(2,currFeatures.size(), CV_64F);
+      // imshow("test", HyperFunctions1.false_img);
+      // cv::waitKey();
 
+      // cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
+      // vector<uchar> status;
+      // featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
 
-   for(int i=0;i<prevFeatures.size();i++)	{   //this (x,y) combination makes sense as observed from the source code of triangulatePoints on GitHub
-  		prevPts.at<double>(0,i) = prevFeatures.at(i).x;
-  		prevPts.at<double>(1,i) = prevFeatures.at(i).y;
+      // E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
+      // recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
 
-  		currPts.at<double>(0,i) = currFeatures.at(i).x;
-  		currPts.at<double>(1,i) = currFeatures.at(i).y;
+      Mat prevPts(2, prevFeatures.size(), CV_64F), currPts(2, currFeatures.size(), CV_64F);
+
+      for (int i = 0; i < prevFeatures.size(); i++)
+      { // this (x,y) combination makes sense as observed from the source code of triangulatePoints on GitHub
+        prevPts.at<double>(0, i) = prevFeatures.at(i).x;
+        prevPts.at<double>(1, i) = prevFeatures.at(i).y;
+
+        currPts.at<double>(0, i) = currFeatures.at(i).x;
+        currPts.at<double>(1, i) = currFeatures.at(i).y;
+      }
+
+      // scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
+      // TODO: at the moment, we hardcode scale, but I hope to look into the distance calib file to set scale
+      scale = 1;
+
+      // cout << "Scale is " << scale << endl;
+
+      if ((scale > 0.1) && (t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1)))
+      {
+
+        t_f = t_f + scale * (R_f * t);
+        R_f = R * R_f;
+      }
+
+      else
+      {
+        // cout << "scale below 0.1, or incorrect translation" << endl;
+      }
+
+      // lines for printing results
+      myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
+
+      // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
+      if (prevFeatures.size() < MIN_NUM_FEAT)
+      {
+        // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
+        // cout << "trigerring redection" << endl;
+        featureDetection(prevImage, prevFeatures);
+        // AGASTDetection(prevImage, prevFeatures);
+
+        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+      }
+
+      prevImage = currImage.clone();
+      prevFeatures = currFeatures;
+
+      int x = int(t_f.at<double>(0)) + 300;
+      int y = int(t_f.at<double>(2)) + 100;
+      circle(traj, Point(x, y), 1, CV_RGB(255, 0, 0), 2);
+
+      rectangle(traj, Point(10, 30), Point(550, 50), CV_RGB(0, 0, 0), FILLED);
+      // display label on trajectory
+
+      sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
+      putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+
+      imshow("Road facing camera", currImage_c);
+      imshow("Trajectory", traj);
+
+      waitKey(1);
     }
-
-  	// scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
-    // TODO: at the moment, we hardcode scale, but I hope to look into the distance calib file to set scale
-    scale = 1;
-
-    // cout << "Scale is " << scale << endl;
-
-    if ((scale>0.1)&&(t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1))) {
-
-      t_f = t_f + scale*(R_f*t);
-      R_f = R*R_f;
-
-    }
-  	
-    else {
-    //  cout << "scale below 0.1, or incorrect translation" << endl;
-    }
-    
-   // lines for printing results
-   myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
-
-  // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
- 	  if (prevFeatures.size() < MIN_NUM_FEAT)	{
-      //cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
-      //cout << "trigerring redection" << endl;
- 		  featureDetection(prevImage, prevFeatures);
- 		  // AGASTDetection(prevImage, prevFeatures);
-
-      featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
-
- 	  }
-
-    prevImage = currImage.clone();
-    prevFeatures = currFeatures;
-
-    int x = int(t_f.at<double>(0)) + 300;
-    int y = int(t_f.at<double>(2)) + 100;
-    circle(traj, Point(x, y) ,1, CV_RGB(255,0,0), 2);
-
-    rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), FILLED);
-    //display label on trajectory
-
-
-    sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
-    putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
-
-    imshow( "Road facing camera", currImage_c );
-    imshow( "Trajectory", traj );
-
-    waitKey(1);
-    }
-
   }
 
   clock_t end = clock();
   double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
   cout << "Total time taken: " << elapsed_secs << "s" << endl;
 
-  //cout << R_f << endl;
-  //cout << t_f << endl;
+  // cout << R_f << endl;
+  // cout << t_f << endl;
 
   return 0;
 }
