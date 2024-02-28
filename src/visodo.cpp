@@ -35,7 +35,8 @@ using namespace std;
 //FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
+// string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
+string dataset_path  = "/workspaces/HyperImages/cornfields/session_002/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -131,21 +132,37 @@ int main( int argc, char** argv )	{
 
 
   HyperFunctions1.cubert_img = dataset_path + filename1;
-  HyperFunctions1.dark_img = "../../HyperImages/teagarden/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
-  HyperFunctions1.white_img = "../../HyperImages/teagarden/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
-  HyperFunctions1.dist_img = "../../HyperImages/teagarden/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
+  // HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
 
+  
+  //I change it to cornfields here because teagarden does not have a distance calib
+  // HyperFunctions1.dark_img = "../../HyperImages/teagarden/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
+  // HyperFunctions1.white_img = "../../HyperImages/teagarden/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
+  // HyperFunctions1.dist_img = "../../HyperImages/teagarden/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
+  HyperFunctions1.dark_img = "/workspaces/HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
+  HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
+  HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
+
+  //FIXME: Currently issues with reprocess image
+  std::cout << dataset_path << filename1 << std::endl;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+
+  HyperFunctions1.false_img_b=2;
+  HyperFunctions1.false_img_g=13;
+  HyperFunctions1.false_img_r=31;
   HyperFunctions1.GenerateFalseImg();
 
   Mat img_1_c = HyperFunctions1.false_img;
+  //FIXME: test to see if it is loading
   imshow("test",  HyperFunctions1.false_img);
   cv::waitKey();
 
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
+
+  //FIXME: test to see if it is loading
   imshow("test",  HyperFunctions1.false_img);
   cv::waitKey();
   Mat img_2_c = HyperFunctions1.false_img;
@@ -205,21 +222,24 @@ int main( int argc, char** argv )	{
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
-  //FIXME: make sure that numFrame matches up with current no of frames in file
+
+  HyperFunctions1.false_img_b=2;
+  HyperFunctions1.false_img_g=13;
+  HyperFunctions1.false_img_r=31;
+  
+  //FIXME: make sure that numFrame matches up with current no of frames in file, change this to while loop
   for(int numFrame=2; numFrame < 250; numFrame++)	{
 
-    //TODO: accesss
-    HyperFunctionsCuvis HyperFunctions1;
-    HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
-
-    HyperFunctions1.false_img_b=2;
-    HyperFunctions1.false_img_g=13;
-    HyperFunctions1.false_img_r=31;
+    //TODO: 
+    // HyperFunctionsCuvis HyperFunctions1;
+    // HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
+    // HyperFunctions1.ReprocessImage();
     HyperFunctions1.GenerateFalseImg();
     imshow("test",  HyperFunctions1.false_img);
     cv::waitKey();
     // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
 
+    //FIXME: this is incorrect at the moment
   	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
     //cout << numFrame << endl;
   	Mat currImage_c = imread(filename);
@@ -248,6 +268,7 @@ int main( int argc, char** argv )	{
     }
 
   	// scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
+    // TODO: at the moment, we hardcode scale, but I hope to look into the distance calib file to set scale
     scale = 1;
 
     // cout << "Scale is " << scale << endl;
@@ -260,7 +281,7 @@ int main( int argc, char** argv )	{
     }
   	
     else {
-     //cout << "scale below 0.1, or incorrect translation" << endl;
+     cout << "scale below 0.1, or incorrect translation" << endl;
     }
     
    // lines for printing results
