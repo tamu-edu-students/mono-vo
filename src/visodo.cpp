@@ -138,7 +138,6 @@ int main(int argc, char **argv)
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
-  // FIXME: Currently issues with reprocess image
   //  std::cout << dataset_path << filename1 << std::endl;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.false_img_b = 2;
@@ -172,7 +171,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  // we work with grayscale images
+  // convert to grayscale images
   cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
   cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
 
@@ -194,7 +193,7 @@ int main(int argc, char **argv)
   Mat E, R, t, mask;
   E = findEssentialMat(points2, points1, focal, pp, RANSAC, 0.999, 1.0, mask);
   recoverPose(E, points2, points1, R, t, focal, pp, mask);
-  
+
   Mat prevImage = img_2;
   Mat currImage;
   vector<Point2f> prevFeatures = points2;
@@ -212,8 +211,7 @@ int main(int argc, char **argv)
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
-  
-    // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
+  // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
   while ((dp = readdir(dir)) != NULL)
   {
     if (strstr(dp->d_name, ".cu3") != NULL)
@@ -221,62 +219,52 @@ int main(int argc, char **argv)
       strcpy(filename, dp->d_name);
       HyperFunctions1.cubert_img = dataset_path + filename;
 
-    //cout << numFrame << endl;
-    HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
-    HyperFunctions1.GenerateFalseImg();
-    
-  	Mat currImage_c = HyperFunctions1.false_img;
+      // cout << numFrame << endl;
+      HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+      HyperFunctions1.GenerateFalseImg();
 
-    if (currImage_c.empty()) {
+      Mat currImage_c = HyperFunctions1.false_img;
+
+      if (currImage_c.empty())
+      {
         std::cout << "Error: curr img is empty." << std::endl;
         return -1;
-    }
+      }
 
-  	cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
-  	vector<uchar> status;
+      cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
+      vector<uchar> status;
 
-  	featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-    cout << currFeatures.size() << " " << prevFeatures.size() << endl;
-    if (currFeatures.size() < 5 || prevFeatures.size() < 5)	{
-      featureDetection(prevImage, prevFeatures);
-      featureDetection(currImage, currFeatures);
+      featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+      // cout << currFeatures.size() << " " << prevFeatures.size() << endl;
 
-      featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
-      cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
+      // reprocess if image has less than 5 features
+      if (currFeatures.size() < 5 || prevFeatures.size() < 5)
+      {
+        featureDetection(prevImage, prevFeatures);
+        featureDetection(currImage, currFeatures);
 
-    }
-    
-  	E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
-    cout << E.rows << " " << E.cols << endl;
-    
-    // imshow("current", currImage);
-    // imshow("prev", prevImage);
-    // waitKey(0);
+        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+        // cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
+      }
 
-    if (E.rows != 3 || E.cols != 3)
-    {
-      //cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
-      //cout << "trigerring redection" << endl;
- 		  featureDetection(prevImage, prevFeatures);
- 		  // AGASTDetection(prevImage, prevFeatures);
-      featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
+      E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
+      // cout << E.rows << " " << E.cols << endl;
 
-      prevImage = currImage.clone();
-      prevFeatures = currFeatures;
-      continue;
-    }
-    
-  	recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
+      // reprocess if E is not 3x3
+      if (E.rows != 3 || E.cols != 3)
+      {
+        // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
+        // cout << "trigerring redection" << endl;
+        featureDetection(prevImage, prevFeatures);
+        // AGASTDetection(prevImage, prevFeatures);
+        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
 
-      // imshow("test", HyperFunctions1.false_img);
-      // cv::waitKey();
+        prevImage = currImage.clone();
+        prevFeatures = currFeatures;
+        continue;
+      }
 
-      // cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
-      // vector<uchar> status;
-      // featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-
-      // E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
-      // recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
+      recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
 
       Mat prevPts(2, prevFeatures.size(), CV_64F), currPts(2, currFeatures.size(), CV_64F);
 
@@ -290,7 +278,6 @@ int main(int argc, char **argv)
       }
 
       // scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
-      // TODO: at the moment, we hardcode scale, but I hope to look into the distance calib file to set scale
       scale = 1;
 
       // cout << "Scale is " << scale << endl;
