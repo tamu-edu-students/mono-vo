@@ -145,7 +145,7 @@ int main( int argc, char** argv )	{
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
   //FIXME: Currently issues with reprocess image
-  std::cout << dataset_path << filename1 << std::endl;
+  // std::cout << dataset_path << filename1 << std::endl;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
 
   HyperFunctions1.false_img_b=2;
@@ -154,17 +154,15 @@ int main( int argc, char** argv )	{
   HyperFunctions1.GenerateFalseImg();
 
   Mat img_1_c = HyperFunctions1.false_img;
-  //FIXME: test to see if it is loading
-  imshow("test",  HyperFunctions1.false_img);
-  cv::waitKey();
+  // imshow("test",  HyperFunctions1.false_img);
+  // cv::waitKey();
 
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
 
-  //FIXME: test to see if it is loading
-  imshow("test",  HyperFunctions1.false_img);
-  cv::waitKey();
+  // imshow("test",  HyperFunctions1.false_img);
+  // cv::waitKey();
   Mat img_2_c = HyperFunctions1.false_img;
 
   if ( !img_1_c.data || !img_2_c.data ) { 
@@ -222,27 +220,34 @@ int main( int argc, char** argv )	{
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
-
-  HyperFunctions1.false_img_b=2;
-  HyperFunctions1.false_img_g=13;
-  HyperFunctions1.false_img_r=31;
   
   //FIXME: make sure that numFrame matches up with current no of frames in file, change this to while loop
-  for(int numFrame=2; numFrame < 250; numFrame++)	{
+  // for(int numFrame=2; numFrame < 250; numFrame++)	{
+  while((dp = readdir (dir)) != NULL){
 
-    //TODO: 
-    // HyperFunctionsCuvis HyperFunctions1;
-    // HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
-    // HyperFunctions1.ReprocessImage();
-    HyperFunctions1.GenerateFalseImg();
+    
+    if (strstr(dp->d_name, ".cu3") != NULL)
+    {
+      break;
+    }
+  // }
+
+
     imshow("test",  HyperFunctions1.false_img);
     cv::waitKey();
     // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
 
-    //FIXME: this is incorrect at the moment
-  	sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
+  	// sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
+    strcpy(filename, dp->d_name);
+    HyperFunctions1.cubert_img = dataset_path + filename;
+
     //cout << numFrame << endl;
-  	Mat currImage_c = imread(filename);
+    HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+    HyperFunctions1.GenerateFalseImg();
+
+  	// Mat currImage_c = imread(filename);
+  	Mat currImage_c = HyperFunctions1.false_img;
+
     // std::cout << numFrame << std::endl;
     if (currImage_c.empty()) {
         std::cout << "Error: curr img is empty." << std::endl;
