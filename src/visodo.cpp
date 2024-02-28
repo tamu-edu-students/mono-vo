@@ -126,11 +126,6 @@ int main( int argc, char** argv )	{
   //read the first two frames from the dataset
   //converts png to mat
   HyperFunctionsCuvis HyperFunctions1;
-  HyperFunctions1.false_img_b=2;
-  HyperFunctions1.false_img_g=13;
-  HyperFunctions1.false_img_r=31;
-
-
   HyperFunctions1.cubert_img = dataset_path + filename1;
   // HyperFunctions1.cubert_img = "../../HyperImages/cornfields/session_002/session_002_490.cu3";
 
@@ -144,8 +139,6 @@ int main( int argc, char** argv )	{
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
-  //FIXME: Currently issues with reprocess image
-  // std::cout << dataset_path << filename1 << std::endl;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
 
   HyperFunctions1.false_img_b=2;
@@ -202,7 +195,7 @@ int main( int argc, char** argv )	{
   Mat E, R, t, mask;
   E = findEssentialMat(points2, points1, focal, pp, RANSAC, 0.999, 1.0, mask);
   recoverPose(E, points2, points1, R, t, focal, pp, mask);
-
+  
   Mat prevImage = img_2;
   Mat currImage;
   vector<Point2f> prevFeatures = points2;
@@ -224,17 +217,11 @@ int main( int argc, char** argv )	{
   //FIXME: make sure that numFrame matches up with current no of frames in file, change this to while loop
   // for(int numFrame=2; numFrame < 250; numFrame++)	{
   while((dp = readdir (dir)) != NULL){
-
-    
     if (strstr(dp->d_name, ".cu3") != NULL)
     {
-      break;
-    }
   // }
 
 
-    imshow("test",  HyperFunctions1.false_img);
-    cv::waitKey();
     // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
 
   	// sprintf(filename, (dataset_path+"%06d.png").c_str(), numFrame); 
@@ -244,21 +231,52 @@ int main( int argc, char** argv )	{
     //cout << numFrame << endl;
     HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
     HyperFunctions1.GenerateFalseImg();
-
+    
   	// Mat currImage_c = imread(filename);
   	Mat currImage_c = HyperFunctions1.false_img;
-
     // std::cout << numFrame << std::endl;
     if (currImage_c.empty()) {
         std::cout << "Error: curr img is empty." << std::endl;
         return -1;
     }
 
+
+    // imshow("test",  currImage_c);
+    // cv::waitKey();
   	cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
   	vector<uchar> status;
-  	featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
 
+  	featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+    cout << currFeatures.size() << " " << prevFeatures.size() << endl;
+    if (currFeatures.size() < 5 || prevFeatures.size() < 5)	{
+      featureDetection(prevImage, prevFeatures);
+      featureDetection(currImage, currFeatures);
+
+      featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
+      cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
+
+    }
+    
   	E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
+    cout << E.rows << " " << E.cols << endl;
+    
+    // imshow("current", currImage);
+    // imshow("prev", prevImage);
+    // waitKey(0);
+
+    if (E.rows != 3 || E.cols != 3)
+    {
+      //cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
+      //cout << "trigerring redection" << endl;
+ 		  featureDetection(prevImage, prevFeatures);
+ 		  // AGASTDetection(prevImage, prevFeatures);
+      featureTracking(prevImage,currImage,prevFeatures,currFeatures, status);
+
+      prevImage = currImage.clone();
+      prevFeatures = currFeatures;
+      continue;
+    }
+    
   	recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
 
     Mat prevPts(2,prevFeatures.size(), CV_64F), currPts(2,currFeatures.size(), CV_64F);
@@ -286,7 +304,7 @@ int main( int argc, char** argv )	{
     }
   	
     else {
-     cout << "scale below 0.1, or incorrect translation" << endl;
+    //  cout << "scale below 0.1, or incorrect translation" << endl;
     }
     
    // lines for printing results
@@ -321,6 +339,7 @@ int main( int argc, char** argv )	{
     imshow( "Trajectory", traj );
 
     waitKey(1);
+    }
 
   }
 
