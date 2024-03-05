@@ -102,6 +102,7 @@ int main(int argc, char **argv)
   char filename1[200];
   char filename2[200];
 
+  // read the first two frames from the dataset
   // image 1
   dp = readdir(dir);
   while ((dp = readdir(dir)) != NULL)
@@ -130,15 +131,14 @@ int main(int argc, char **argv)
   int thickness = 1;
   cv::Point textOrg(10, 50);
 
-  // read the first two frames from the dataset
-  // converts png to mat
+  // set up hyperfunctions
   HyperFunctionsCuvis HyperFunctions1;
   HyperFunctions1.cubert_img = dataset_path + filename1;
   HyperFunctions1.dark_img = "/workspaces/HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
-  //  std::cout << dataset_path << filename1 << std::endl;
+  // generate false color image for first two images, convert to mat
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.false_img_b = 2;
   HyperFunctions1.false_img_g = 13;
@@ -153,6 +153,7 @@ int main(int argc, char **argv)
 
   Mat img_2_c = HyperFunctions1.false_img;
 
+  // check if images are empty
   if (!img_1_c.data || !img_2_c.data)
   {
     std::cout << " --(!) Error reading images " << std::endl;
@@ -174,7 +175,6 @@ int main(int argc, char **argv)
   // convert to grayscale images
   cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
   cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
-
   img_1 = img_1_c;
   img_2 = img_2_c;
 
@@ -211,33 +211,32 @@ int main(int argc, char **argv)
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
 
-  // cv::imwrite(HyperFunctions1.output_dir+"test_img.png", HyperFunctions1.false_img);
   while ((dp = readdir(dir)) != NULL)
   {
     if (strstr(dp->d_name, ".cu3") != NULL)
     {
+      // generate false color image for current image, convert to mat
       strcpy(filename, dp->d_name);
       HyperFunctions1.cubert_img = dataset_path + filename;
-
-      // cout << numFrame << endl;
       HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
       HyperFunctions1.GenerateFalseImg();
-
       Mat currImage_c = HyperFunctions1.false_img;
 
+      // check if current image is empty
       if (currImage_c.empty())
       {
         std::cout << "Error: curr img is empty." << std::endl;
         return -1;
       }
 
+      // convert to grayscale
       cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
       vector<uchar> status;
 
       featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
       // cout << currFeatures.size() << " " << prevFeatures.size() << endl;
 
-      // reprocess if image has less than 5 features
+      // redetect if images have less than 5 features
       if (currFeatures.size() < 5 || prevFeatures.size() < 5)
       {
         featureDetection(prevImage, prevFeatures);
@@ -250,7 +249,7 @@ int main(int argc, char **argv)
       E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
       // cout << E.rows << " " << E.cols << endl;
 
-      // reprocess if E is not 3x3
+      // redetect if E is not 3x3
       if (E.rows != 3 || E.cols != 3)
       {
         // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
@@ -259,6 +258,7 @@ int main(int argc, char **argv)
         // AGASTDetection(prevImage, prevFeatures);
         featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
 
+        // set prev image to current image and continue to next iteration
         prevImage = currImage.clone();
         prevFeatures = currFeatures;
         continue;
