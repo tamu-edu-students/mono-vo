@@ -60,19 +60,20 @@ fast_ypoints_shifted = GT_ypoints - y_shift
 # plt.show()
 # Plot the shifted ground truth, FAST, and AGAST points
 plt.plot(fast_xpoints_shifted, fast_ypoints_shifted, color='blue')
-plt.plot(GT_xpoints, GT_ypoints, color='green')
+# plt.plot(GT_xpoints, GT_ypoints, color='green')
 plt.plot(result_xpoints, result_ypoints, color='red')
-plt.legend(['FAST (shifted)', 'FAST', 'AGAST'], loc='upper left')
+# plt.legend(['Shifted Ground Truth', 'Ground Truth', 'Result'], loc='upper left')
+plt.legend(['Shifted Ground Truth', 'Result'], loc='upper left')
 
 # max_x = max(np.max(fast_xpoints_shifted), np.max(GT_xpoints), np.max(result_xpoints))
-# plt.xlim(0, max_x)
-plt.ylim(0, 150)
+plt.xlim(-3, 0)
+plt.ylim(-1, 4)
 
 plt.show()
 
 print("FAST xpoints shifted:", fast_xpoints_shifted)
 print("FAST ypoints shifted:", fast_ypoints_shifted)
-print("FAST xpoints:", GT_xpoints)
-print("FAST ypoints:", GT_ypoints)
+# print("FAST xpoints:", GT_xpoints)
+# print("FAST ypoints:", GT_ypoints)
 print("AGAST xpoints:", result_xpoints)
 print("AGAST ypoints:", result_ypoints)
