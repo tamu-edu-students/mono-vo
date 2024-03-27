@@ -35,12 +35,8 @@ using namespace std;
 // FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-<<<<<<< HEAD
 // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
 string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
-=======
-string dataset_path  = "/workspaces/";
->>>>>>> 61d0e010b2abba79b8e4ef4151c38f3a87fd8408
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -92,6 +88,10 @@ int main(int argc, char **argv)
 
   ofstream myfile;
   myfile.open("results1_1.txt"); // open up predicted
+
+  //TODO: make file for ground truth
+  ofstream ground_truth;
+  ground_truth.open("ground_truth.txt");
 
   double scale = 1.00;
   DIR *dir;
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 
   while ((dp = readdir(dir)) != NULL)
   {
-    if (strstr(dp->d_name, ".cu3") != NULL)
+    if (strstr(dp->d_name, ".cu3") != NULL) //TODO: change this to allow for jpg files to be read in
     {
       // generate false color image for current image, convert to mat
       strcpy(filename, dp->d_name);
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
       vector<uchar> status;
 
       featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-      // cout << currFeatures.size() << " " << prevFeatures.size() << endl;
+      cout << currFeatures.size() << " " << prevFeatures.size() << endl;
 
       // redetect if images have less than 5 features
       if (currFeatures.size() < 5 || prevFeatures.size() < 5)
@@ -297,10 +297,26 @@ int main(int argc, char **argv)
       {
         // cout << "scale below 0.1, or incorrect translation" << endl;
       }
+      //TODO: lines for printing ground truth
+      //we skip ground truth for jpg files
+      // Get the GPS data
+        char* const measurementLoc =  const_cast<char*>(HyperFunctions1.cubert_img.c_str());
+
+      cuvis::Measurement mesu(measurementLoc);
+      
+      const cuvis::Measurement::gps_data_t* gps_data = mesu.get_gps();
+
+      // Iterate over the GPS data and print the coordinates
+      for (const auto& pair : *gps_data) {
+          // std::cout << "Key: " << pair.first << ", Latitude: " << pair.second.latitude << ", Longitude: " << pair.second.longitude << std::endl;
+          ground_truth << pair.second.latitude << " " << pair.second.longitude << endl;
+      }
 
       // lines for printing results
       myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
 
+
+      
       // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
       if (prevFeatures.size() < MIN_NUM_FEAT)
       {
