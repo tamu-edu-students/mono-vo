@@ -37,6 +37,7 @@ string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
 // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
 string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+// string dataset_path = "/workspaces/HyperImages/wextel-1/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -140,9 +141,9 @@ int main(int argc, char **argv)
 
   // generate false color image for first two images, convert to mat
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
-  HyperFunctions1.false_img_b = 2;
-  HyperFunctions1.false_img_g = 13;
-  HyperFunctions1.false_img_r = 31;
+  HyperFunctions1.false_img_b = 25;
+  HyperFunctions1.false_img_g = 40;
+  HyperFunctions1.false_img_r = 78;
   HyperFunctions1.GenerateFalseImg();
 
   Mat img_1_c = HyperFunctions1.false_img;
@@ -150,6 +151,9 @@ int main(int argc, char **argv)
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
+
+  HyperFunctions1.DispFalseImage();
+  // cv::waitKey(0);
 
   Mat img_2_c = HyperFunctions1.false_img;
 
@@ -234,7 +238,7 @@ int main(int argc, char **argv)
       vector<uchar> status;
 
       featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-      // cout << currFeatures.size() << " " << prevFeatures.size() << endl;
+      cout << currFeatures.size() << " " << prevFeatures.size() << endl;
 
       // redetect if images have less than 5 features
       if (currFeatures.size() < 5 || prevFeatures.size() < 5)
@@ -243,11 +247,11 @@ int main(int argc, char **argv)
         featureDetection(currImage, currFeatures);
 
         featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-        // cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
+        cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
       }
 
       E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
-      // cout << E.rows << " " << E.cols << endl;
+      cout << E.rows << " " << E.cols << endl;
 
       // redetect if E is not 3x3
       if (E.rows != 3 || E.cols != 3)
