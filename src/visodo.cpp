@@ -36,7 +36,8 @@ using namespace std;
 string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
 // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
-string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+// string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
 
 // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
 
@@ -109,15 +110,24 @@ int main(int argc, char **argv)
   // read the first two frames from the dataset
   // image 1
   dp = readdir(dir);
+  bool is_cu3 = false;
+  bool is_png = false;
+
   while ((dp = readdir(dir)) != NULL)
   {
-    if (strstr(dp->d_name, ".cu3") != NULL)
+    if (strstr(dp->d_name, ".cu3") != NULL) 
     {
+      is_cu3 = true; //this sets our entire control flow for later on
+      break;
+    }
+    else if (strstr(dp->d_name, ".png") != NULL)
+    {
+      is_png = true;
       break;
     }
   }
   strcpy(filename1, dp->d_name);
-
+  cout << filename1 << endl;
   // image 2
   dp = readdir(dir);
   while ((dp = readdir(dir)) != NULL)
@@ -126,8 +136,14 @@ int main(int argc, char **argv)
     {
       break;
     }
+    else if (strstr(dp->d_name, ".png") != NULL)
+    {
+      break;
+    }
+    
   }
   strcpy(filename2, dp->d_name);
+  cout << filename2 << endl;
 
   char text[100];
   int fontFace = FONT_HERSHEY_PLAIN;
@@ -135,8 +151,10 @@ int main(int argc, char **argv)
   int thickness = 1;
   cv::Point textOrg(10, 50);
 
-  // set up hyperfunctions
   HyperFunctionsCuvis HyperFunctions1;
+  
+  if(is_cu3){
+  // set up hyperfunctions
   HyperFunctions1.cubert_img = dataset_path + filename1;
   HyperFunctions1.dark_img = "/workspaces/HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
@@ -181,7 +199,16 @@ int main(int argc, char **argv)
   cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
   img_1 = img_1_c;
   img_2 = img_2_c;
+  }
+  else if(is_png){
+    Mat img_1_c = imread((dataset_path + filename1).c_str());
+    Mat img_2_c = imread((dataset_path + filename2).c_str());
 
+    cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
+    cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
+    img_1 = img_1_c;
+    img_2 = img_2_c;
+  }
   // feature detection, tracking
   vector<Point2f> points1, points2; // vectors to store the coordinates of the feature points
   featureDetection(img_1, points1); // detect features in img_1
@@ -217,28 +244,40 @@ int main(int argc, char **argv)
 
   while ((dp = readdir(dir)) != NULL)
   {
-    if (strstr(dp->d_name, ".cu3") != NULL) //TODO: change this to allow for jpg files to be read in
+    Mat currImage_c;
+
+    if (strstr(dp->d_name, ".cu3") != NULL || strstr(dp->d_name, ".png") != NULL) //TODO: change this to allow for png files to be read in
     {
+     if(is_cu3){
       // generate false color image for current image, convert to mat
       strcpy(filename, dp->d_name);
       HyperFunctions1.cubert_img = dataset_path + filename;
       HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
       HyperFunctions1.GenerateFalseImg();
-      Mat currImage_c = HyperFunctions1.false_img;
-
+      currImage_c = HyperFunctions1.false_img;
+     }
+     else if(is_png){
+      //stringcpy the dataset path and filename
+      strcpy(filename, (dataset_path+dp->d_name).c_str());
+      
+      // strcpy(filename, dataset_path.c_str() + dp->d_name);
+      cout << filename << endl;
+      
+      currImage_c = imread(filename);
+     }
       // check if current image is empty
       if (currImage_c.empty())
       {
         std::cout << "Error: curr img is empty." << std::endl;
         return -1;
       }
-
+    
       // convert to grayscale
       cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
       vector<uchar> status;
 
       featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-      cout << currFeatures.size() << " " << prevFeatures.size() << endl;
+      // cout << currFeatures.size() << " " << prevFeatures.size() << endl;
 
       // redetect if images have less than 5 features
       if (currFeatures.size() < 5 || prevFeatures.size() < 5)
@@ -298,8 +337,9 @@ int main(int argc, char **argv)
         // cout << "scale below 0.1, or incorrect translation" << endl;
       }
       //TODO: lines for printing ground truth
-      //we skip ground truth for jpg files
+      //we skip ground truth for png files
       // Get the GPS data
+      if(is_cu3){
         char* const measurementLoc =  const_cast<char*>(HyperFunctions1.cubert_img.c_str());
 
       cuvis::Measurement mesu(measurementLoc);
@@ -311,7 +351,7 @@ int main(int argc, char **argv)
           // std::cout << "Key: " << pair.first << ", Latitude: " << pair.second.latitude << ", Longitude: " << pair.second.longitude << std::endl;
           ground_truth << pair.second.latitude << " " << pair.second.longitude << endl;
       }
-
+      }
       // lines for printing results
       myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
 
@@ -345,7 +385,7 @@ int main(int argc, char **argv)
       imshow("Trajectory", traj);
 
       waitKey(1);
-    }
+    }  
   }
 
   clock_t end = clock();
