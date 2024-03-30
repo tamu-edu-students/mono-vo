@@ -34,6 +34,12 @@ THE SOFTWARE.
 
 #include <dirent.h>
 
+
+#include <torch/torch.h>
+#include <torch/script.h> 
+#include <memory>
+#include <cmath>
+
 // #include "opencv2/video/tracking.hpp"
 // #include "opencv2/imgproc/imgproc.hpp"
 // #include "opencv2/highgui/highgui.hpp"
@@ -53,23 +59,23 @@ THE SOFTWARE.
 #include <fstream>
 #include <string>
 
-using namespace cv;
+// using namespace cv;
 using namespace std;
 
-void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status)	{ 
+void featureTracking(cv::Mat img_1, cv::Mat img_2, vector<cv::Point2f>& points1, vector<cv::Point2f>& points2, vector<uchar>& status)	{ 
 
 //this function automatically gets rid of points for which tracking fails
 
   vector<float> err;					
-  Size winSize=Size(21,21);																								
-  TermCriteria termcrit=TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 0.01);
+  cv::Size winSize=cv::Size(21,21);																								
+  cv::TermCriteria termcrit=cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 30, 0.01);
 
   calcOpticalFlowPyrLK(img_1, img_2, points1, points2, status, err, winSize, 3, termcrit, 0, 0.001);
 
   //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
   int indexCorrection = 0;
   for( int i=0; i<status.size(); i++)
-     {  Point2f pt = points2.at(i- indexCorrection);
+     {  cv::Point2f pt = points2.at(i- indexCorrection);
      	if ((status.at(i) == 0)||(pt.x<0)||(pt.y<0))	{
      		  if((pt.x<0)||(pt.y<0))	{
      		  	status.at(i) = 0;
@@ -84,18 +90,18 @@ void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Poin
 }
 
 
-void featureDetection(Mat img_1, vector<Point2f>& points1)	{   //uses FAST as of now, modify parameters as necessary
-  vector<KeyPoint> keypoints_1;
+void featureDetection(cv::Mat img_1, vector<cv::Point2f>& points1)	{   //uses FAST as of now, modify parameters as necessary
+  vector<cv::KeyPoint> keypoints_1;
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
   FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
-  KeyPoint::convert(keypoints_1, points1, vector<int>());
+  cv::KeyPoint::convert(keypoints_1, points1, vector<int>());
 }
 
-void AGASTDetection(Mat img_1, vector<Point2f>& points1)	{   //uses AGAST as of now, modify parameters as necessary
-  vector<KeyPoint> keypoints_1;
+void AGASTDetection(cv::Mat img_1, vector<cv::Point2f>& points1)	{   //uses AGAST as of now, modify parameters as necessary
+  vector<cv::KeyPoint> keypoints_1;
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
   AGAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
-  KeyPoint::convert(keypoints_1, points1, vector<int>());
+  cv::KeyPoint::convert(keypoints_1, points1, vector<int>());
 }

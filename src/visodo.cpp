@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 #include "vo_features.h"
 
-using namespace cv;
+// using namespace cv;
 using namespace std;
 
 #define MAX_FRAME 1000
@@ -84,8 +84,8 @@ double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)
 int main(int argc, char **argv)
 {
 
-  Mat img_1, img_2;
-  Mat R_f, t_f; // the final rotation and tranlation vectors containing the
+  cv::Mat img_1, img_2;
+  cv::Mat R_f, t_f; // the final rotation and tranlation vectors containing the
 
   ofstream myfile;
   myfile.open("results1_1.txt"); // open up predicted
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
   strcpy(filename2, dp->d_name);
 
   char text[100];
-  int fontFace = FONT_HERSHEY_PLAIN;
+  int fontFace = cv::FONT_HERSHEY_PLAIN;
   double fontScale = 1;
   int thickness = 1;
   cv::Point textOrg(10, 50);
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
   HyperFunctions1.false_img_r = 78;
   HyperFunctions1.GenerateFalseImg();
 
-  Mat img_1_c = HyperFunctions1.false_img;
+  cv::Mat img_1_c = HyperFunctions1.false_img;
 
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
   HyperFunctions1.DispFalseImage();
   // cv::waitKey(0);
 
-  Mat img_2_c = HyperFunctions1.false_img;
+  cv::Mat img_2_c = HyperFunctions1.false_img;
 
   // check if images are empty
   if (!img_1_c.data || !img_2_c.data)
@@ -177,13 +177,13 @@ int main(int argc, char **argv)
   }
 
   // convert to grayscale images
-  cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
-  cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
+  cv::cvtColor(img_1_c, img_1_c, cv::COLOR_BGR2GRAY);
+  cv::cvtColor(img_2_c, img_2_c, cv::COLOR_BGR2GRAY);
   img_1 = img_1_c;
   img_2 = img_2_c;
 
   // feature detection, tracking
-  vector<Point2f> points1, points2; // vectors to store the coordinates of the feature points
+  vector<cv::Point2f> points1, points2; // vectors to store the coordinates of the feature points
   featureDetection(img_1, points1); // detect features in img_1
   // AGASTDetection(img_1, points1);
 
@@ -194,14 +194,14 @@ int main(int argc, char **argv)
   double focal = 718.8560;
   cv::Point2d pp(607.1928, 185.2157);
   // recovering the pose and the essential matrix
-  Mat E, R, t, mask;
-  E = findEssentialMat(points2, points1, focal, pp, RANSAC, 0.999, 1.0, mask);
-  recoverPose(E, points2, points1, R, t, focal, pp, mask);
+  cv::Mat E, R, t, mask;
+  E = cv::findEssentialMat(points2, points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+  cv::recoverPose(E, points2, points1, R, t, focal, pp, mask);
 
-  Mat prevImage = img_2;
-  Mat currImage;
-  vector<Point2f> prevFeatures = points2;
-  vector<Point2f> currFeatures;
+  cv::Mat prevImage = img_2;
+  cv::Mat currImage;
+  vector<cv::Point2f> prevFeatures = points2;
+  vector<cv::Point2f> currFeatures;
 
   char filename[100];
 
@@ -210,10 +210,10 @@ int main(int argc, char **argv)
 
   clock_t begin = clock();
 
-  namedWindow("Road facing camera", WINDOW_AUTOSIZE); // Create a window for display.
-  namedWindow("Trajectory", WINDOW_AUTOSIZE);         // Create a window for display.
+  cv::namedWindow("Road facing camera", cv::WINDOW_AUTOSIZE); // Create a window for display.
+  cv::namedWindow("Trajectory", cv::WINDOW_AUTOSIZE);         // Create a window for display.
 
-  Mat traj = Mat::zeros(600, 600, CV_8UC3);
+  cv::Mat traj = cv::Mat::zeros(600, 600, CV_8UC3);
 
   while ((dp = readdir(dir)) != NULL)
   {
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
       HyperFunctions1.cubert_img = dataset_path + filename;
       HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
       HyperFunctions1.GenerateFalseImg();
-      Mat currImage_c = HyperFunctions1.false_img;
+      cv::Mat currImage_c = HyperFunctions1.false_img;
 
       // check if current image is empty
       if (currImage_c.empty())
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
       }
 
       // convert to grayscale
-      cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
+      cv::cvtColor(currImage_c, currImage, cv::COLOR_BGR2GRAY);
       vector<uchar> status;
 
       featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
         cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
       }
 
-      E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
+      E = cv::findEssentialMat(currFeatures, prevFeatures, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
       cout << E.rows << " " << E.cols << endl;
 
       // redetect if E is not 3x3
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 
       recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
 
-      Mat prevPts(2, prevFeatures.size(), CV_64F), currPts(2, currFeatures.size(), CV_64F);
+      cv::Mat prevPts(2, prevFeatures.size(), CV_64F), currPts(2, currFeatures.size(), CV_64F);
 
       for (int i = 0; i < prevFeatures.size(); i++)
       { // this (x,y) combination makes sense as observed from the source code of triangulatePoints on GitHub
@@ -317,18 +317,18 @@ int main(int argc, char **argv)
 
       int x = int(t_f.at<double>(0)) + 300;
       int y = int(t_f.at<double>(2)) + 100;
-      circle(traj, Point(x, y), 1, CV_RGB(255, 0, 0), 2);
+      circle(traj, cv::Point(x, y), 1, CV_RGB(255, 0, 0), 2);
 
-      rectangle(traj, Point(10, 30), Point(550, 50), CV_RGB(0, 0, 0), FILLED);
+      rectangle(traj, cv::Point(10, 30), cv::Point(550, 50), CV_RGB(0, 0, 0), cv::FILLED);
       // display label on trajectory
 
       sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
-      putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+      putText(traj, text, textOrg, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
 
       imshow("Road facing camera", currImage_c);
       imshow("Trajectory", traj);
 
-      waitKey(1);
+      cv::waitKey(1);
     }
   }
 
