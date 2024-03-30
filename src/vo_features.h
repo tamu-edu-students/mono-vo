@@ -105,3 +105,103 @@ void AGASTDetection(cv::Mat img_1, vector<cv::Point2f>& points1)	{   //uses AGAS
   AGAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
   cv::KeyPoint::convert(keypoints_1, points1, vector<int>());
 }
+
+
+c10::intrusive_ptr<torch::ivalue::Tuple> run_model_on_image(const cv::Mat& input_img, torch::jit::script::Module& module) {
+    cv::Mat img;
+    input_img.copyTo(img);
+    cv::resize(img, img, cv::Size(224, 224), cv::INTER_LINEAR);
+
+    img.convertTo(img, CV_32F, 1.0 / 255);
+
+    auto tensor = torch::from_blob(img.data, {1, img.rows, img.cols, 3});
+    if (tensor.dim() == 4) {
+        tensor = tensor.permute({0, 3, 1, 2});
+    } else {
+        std::cerr << "Tensor does not have 4 dimensions\n";
+        return nullptr;
+    }
+
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(tensor);
+
+    auto output = module.forward(inputs);
+
+    if (!output.isTuple()) {
+        std::cerr << "Output is not a tuple\n";
+        return nullptr;
+    }
+
+    auto output_tuple = output.toTuple();
+    // std::cout << "Tuple size: " << output_tuple->elements().size() << std::endl;
+
+    // for (size_t i = 0; i < output_tuple->elements().size(); ++i) {
+    //     auto element = output_tuple->elements()[i];
+    //     if (element.isTensor()) {
+    //         // std::cout << "Element " << i << ": " << element.toTensor() << std::endl;
+    //        torch::ScalarType dtype = element.toTensor().scalar_type();
+    //         std::cout << "Element " << i << " data type: " << dtype << std::endl;
+    //     }
+    // }
+
+    // Return the entire output tuple
+    return output_tuple;
+}
+
+
+cv::Mat tensorToMat(torch::Tensor tensor, bool is_gray=false) {
+    tensor = tensor.detach().cpu();
+    tensor = tensor.squeeze();
+    if (tensor.dim() == 3) {
+        tensor = tensor.permute({1, 2, 0});
+    } else if (tensor.dim() != 2) {
+        std::cerr << "Tensor does not have 2 or 3 dimensions\n";
+        return cv::Mat();
+    }
+    tensor = tensor.to(torch::kF32);
+    // cv::Mat mat(cv::Size{tensor.size(1), tensor.size(0)}, CV_32FC1);
+    cv::Mat mat(cv::Size{static_cast<int>(tensor.size(1)), static_cast<int>(tensor.size(0))}, CV_32F);
+    std::memcpy((void*)mat.data, tensor.data_ptr(), sizeof(float)*tensor.numel());
+    return mat.clone();
+}
+
+
+double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)
+{
+
+  string line;
+  int i = 0;
+  ifstream myfile(groundtruth_path);
+  double x = 0, y = 0, z = 0;
+  double x_prev, y_prev, z_prev;
+  if (myfile.is_open())
+  {
+    while ((getline(myfile, line)) && (i <= frame_id)) // map out the scale of ground truth
+    {
+      z_prev = z;
+      x_prev = x;
+      y_prev = y;
+      std::istringstream in(line);
+      // cout << line << '\n';
+      for (int j = 0; j < 12; j++)
+      {
+        in >> z;
+        if (j == 7)
+          y = z;
+        if (j == 3)
+          x = z;
+      }
+
+      i++;
+    }
+    myfile.close();
+  }
+
+  else
+  {
+    cout << "Unable to open file";
+    return 0;
+  }
+
+  return sqrt((x - x_prev) * (x - x_prev) + (y - y_prev) * (y - y_prev) + (z - z_prev) * (z - z_prev));
+}

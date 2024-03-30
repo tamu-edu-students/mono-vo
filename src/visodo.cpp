@@ -32,57 +32,37 @@ using namespace std;
 #define MAX_FRAME 1000
 #define MIN_NUM_FEAT 2000
 
-// FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
-string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-// string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
-string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
-// string dataset_path = "/workspaces/HyperImages/wextel-1/";
 
-// IMP: Change the file directories (4 places) according to where your dataset is saved before running!
-
-double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)
-{
-
-  string line;
-  int i = 0;
-  ifstream myfile(groundtruth_path);
-  double x = 0, y = 0, z = 0;
-  double x_prev, y_prev, z_prev;
-  if (myfile.is_open())
-  {
-    while ((getline(myfile, line)) && (i <= frame_id)) // map out the scale of ground truth
-    {
-      z_prev = z;
-      x_prev = x;
-      y_prev = y;
-      std::istringstream in(line);
-      // cout << line << '\n';
-      for (int j = 0; j < 12; j++)
-      {
-        in >> z;
-        if (j == 7)
-          y = z;
-        if (j == 3)
-          x = z;
-      }
-
-      i++;
-    }
-    myfile.close();
-  }
-
-  else
-  {
-    cout << "Unable to open file";
-    return 0;
-  }
-
-  return sqrt((x - x_prev) * (x - x_prev) + (y - y_prev) * (y - y_prev) + (z - z_prev) * (z - z_prev));
-}
 
 int main(int argc, char **argv)
 {
+
+  // FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
+  string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
+
+  // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
+  string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+  // string dataset_path = "/workspaces/HyperImages/wextel-1/";
+
+  // calibration parameters for camera
+  double focal = 718.8560;
+  cv::Point2d pp(607.1928, 185.2157);
+
+  // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
+
+  // Load the TorchScript model
+  torch::jit::script::Module module;
+  
+    try {
+        module = torch::jit::load("/workspaces/HyperTools/dino_vitb16_model_test.pt");
+        cout<<"Model loaded successfully!"<<endl;
+    }
+    catch (const c10::Error& e) {
+        std::cerr << "Error loading the model\n";
+        return -1;
+    }
+
 
   cv::Mat img_1, img_2;
   cv::Mat R_f, t_f; // the final rotation and tranlation vectors containing the
@@ -100,6 +80,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  
   char filename1[200];
   char filename2[200];
 
@@ -139,7 +120,7 @@ int main(int argc, char **argv)
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
-  // generate false color image for first two images, convert to mat
+  // generate false color image for first two images, convert to mat, layer values are for x20p
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.false_img_b = 25;
   HyperFunctions1.false_img_g = 40;
@@ -152,7 +133,7 @@ int main(int argc, char **argv)
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
 
-  HyperFunctions1.DispFalseImage();
+  // HyperFunctions1.DispFalseImage();
   // cv::waitKey(0);
 
   cv::Mat img_2_c = HyperFunctions1.false_img;
@@ -191,8 +172,7 @@ int main(int argc, char **argv)
   featureTracking(img_1, img_2, points1, points2, status); // track those features to img_2
 
   // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
-  double focal = 718.8560;
-  cv::Point2d pp(607.1928, 185.2157);
+  
   // recovering the pose and the essential matrix
   cv::Mat E, R, t, mask;
   E = cv::findEssentialMat(points2, points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
