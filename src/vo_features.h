@@ -166,7 +166,7 @@ cv::Mat tensorToMat(torch::Tensor tensor, bool is_gray=false) {
 }
 
 
-double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)
+double getAbsoluteScale(int frame_id, int sequence_id, double z_cal, std::string groundtruth_path)
 {
 
   string line;
