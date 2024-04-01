@@ -234,7 +234,7 @@ int main(int argc, char **argv)
     // std::vector<cv::KeyPoint> keypoints1_rescaled, keypoints2_rescaled;
 
 
-    cout<<img_1_c.cols<<" rows " <<img_1_c.rows<<endl;
+    // cout<<img_1_c.cols<<" rows " <<img_1_c.rows<<endl;
     for (const auto& match : good_matches) {
         matched_keypoints1.push_back(keypoints1[match.queryIdx]);
         matched_keypoints2.push_back(keypoints2[match.trainIdx]);
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
         pt2.y = std::floor(static_cast<int>(pt2.y));
         points2.push_back(pt2);
 
-        cout<<pt1<<" "<<pt2<<endl;
+        // cout<<pt1<<" "<<pt2<<endl;
     }
 
     // for (const auto& pt : points1) {
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
     //     match.trainIdx = i;
     //     rescaled_matches.push_back(match);
     // }
-
+/*
 
   cv::Mat img1_resize , img2_resize ;
   cv::resize(img_1_c, img1_resize, cv::Size(224, 224), cv::INTER_LINEAR);
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
  cv::Scalar::all(-1), std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 //  -- Show detected matches
  cv::imshow("Good Matches", img_matches );
- cv::waitKey(100);
+ cv::waitKey(100);*/
 
 
   }
@@ -362,7 +362,12 @@ int main(int argc, char **argv)
       {
       featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
       }
-      cout << currFeatures.size() << " " << prevFeatures.size() << endl;
+      else
+      {
+
+        featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
+      }
+      cout << currFeatures.size() << " features prev and cur " << prevFeatures.size() << endl;
 
       
       
@@ -374,6 +379,8 @@ int main(int argc, char **argv)
         {
           featureDetection(prevImage, prevFeatures);
           featureDetection(currImage, currFeatures);
+
+          featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
         }
         else
         {
@@ -420,7 +427,7 @@ int main(int argc, char **argv)
           }
           }
 
-          cout<<"good matches size "<<good_matches.size()<<endl;
+          cout<<"good matches size place 2: "<<good_matches.size()<<endl;
       
           std::vector<cv::KeyPoint> matched_keypoints1, matched_keypoints2;
 
@@ -435,11 +442,13 @@ int main(int argc, char **argv)
           prevFeatures = points1;
           currFeatures = points2;
 
+          featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
+
         }
         
         
         
-        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+        
         cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
       }
 
@@ -451,17 +460,89 @@ int main(int argc, char **argv)
       {
         cout<<"E is not 3x3"<<endl;
         
-        // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
-        // cout << "trigerring redection" << endl;
-        featureDetection(prevImage, prevFeatures);
-        // AGASTDetection(prevImage, prevFeatures);
-        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+        
+        if (!use_dino2)
+        {
+          // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
+          // cout << "trigerring redection" << endl;
+          featureDetection(prevImage, prevFeatures);
+          // AGASTDetection(prevImage, prevFeatures);
+          featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+
+        
+        }
+        else
+        {
+
+          // c10::intrusive_ptr<torch::ivalue::Tuple> output1, output2;
+          // run model on image
+          cout<<"running model on image..."<<endl;
+          output1 = run_model_on_image(prevImage_c, module);
+          output2 = run_model_on_image(currImage_c, module);
+
+          cv::Mat features1 = tensorToMat(output1->elements()[0].toTensor());
+
+          cv::Mat features2 = tensorToMat(output2->elements()[0].toTensor());
+
+          std::vector<cv::KeyPoint> keypoints1, keypoints2;
+          int grid_size = 14;
+
+          int resize_scale = 224;
+
+          // Convert features to keypoints
+          for (int i = 0; i < (resize_scale/14); i++) {
+              for(int j = 0; j < (resize_scale/14); j++) {
+                  int row, col;
+
+                  row = i * grid_size + grid_size / 2;
+                  col = j * grid_size + grid_size / 2;
+                  
+                  keypoints1.push_back(cv::KeyPoint(cv::Point2f(col, row), 1));
+              }
+          }
+
+          keypoints2 = keypoints1;
+
+          cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+          std::vector< std::vector<cv::DMatch> > knn_matches;
+          //  matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2 );
+          matcher->knnMatch( features1, features2, knn_matches, 2 );
+
+          const float ratio_thresh = 0.9f;
+          std::vector<cv::DMatch> good_matches;
+          for (size_t i = 0; i < knn_matches.size(); i++)
+          {
+          if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+          {
+          good_matches.push_back(knn_matches[i][0]);
+          }
+          }
+
+          cout<<"good matches size place 2: "<<good_matches.size()<<endl;
+      
+          std::vector<cv::KeyPoint> matched_keypoints1, matched_keypoints2;
+
+          for (const auto& match : good_matches) {
+              matched_keypoints1.push_back(keypoints1[match.queryIdx]);
+              matched_keypoints2.push_back(keypoints2[match.trainIdx]);
+
+              points1.push_back(keypoints1[match.queryIdx].pt);
+              points2.push_back(keypoints2[match.trainIdx].pt);
+          }
+
+          prevFeatures = points1;
+          currFeatures = points2;
+
+          featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
+
+        }
 
         // set prev image to current image and continue to next iteration
         prevImage = currImage.clone();
         prevImage_c = currImage_c.clone();
         prevFeatures = currFeatures;
         continue;
+
       }
 
       recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
@@ -498,7 +579,7 @@ int main(int argc, char **argv)
       myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
 
       // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
-      if (prevFeatures.size() < MIN_NUM_FEAT)
+      if (prevFeatures.size() < MIN_NUM_FEAT && !use_dino2)
       {
         cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
         // cout << "trigerring redection" << endl;
