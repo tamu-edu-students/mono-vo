@@ -26,66 +26,52 @@ THE SOFTWARE.
 
 #include "vo_features.h"
 
-using namespace cv;
+// using namespace cv;
 using namespace std;
 
 #define MAX_FRAME 1000
 #define MIN_NUM_FEAT 2000
 
-// FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
-string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
 
-// string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
-// string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
-string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
-
-// IMP: Change the file directories (4 places) according to where your dataset is saved before running!
-
-double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)
-{
-
-  string line;
-  int i = 0;
-  ifstream myfile(groundtruth_path);
-  double x = 0, y = 0, z = 0;
-  double x_prev, y_prev, z_prev;
-  if (myfile.is_open())
-  {
-    while ((getline(myfile, line)) && (i <= frame_id)) // map out the scale of ground truth
-    {
-      z_prev = z;
-      x_prev = x;
-      y_prev = y;
-      std::istringstream in(line);
-      // cout << line << '\n';
-      for (int j = 0; j < 12; j++)
-      {
-        in >> z;
-        if (j == 7)
-          y = z;
-        if (j == 3)
-          x = z;
-      }
-
-      i++;
-    }
-    myfile.close();
-  }
-
-  else
-  {
-    cout << "Unable to open file";
-    return 0;
-  }
-
-  return sqrt((x - x_prev) * (x - x_prev) + (y - y_prev) * (y - y_prev) + (z - z_prev) * (z - z_prev));
-}
 
 int main(int argc, char **argv)
 {
 
-  Mat img_1, img_2;
-  Mat R_f, t_f; // the final rotation and tranlation vectors containing the
+  bool use_dino2 = true;
+  
+  // FIXME: some changes to make it easier to edit paths, as we are using our own images: (make sure to change the path...)
+  string groundtruth_path = "/workspaces/mono-vo/GT_FAST/01.txt";
+
+
+  // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
+//   string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
+  // string dataset_path = "/workspaces/HyperImages/wextel-1/";
+
+  // calibration parameters for camera
+  double focal = 718.8560;
+  cv::Point2d pp(607.1928, 185.2157);
+
+  // IMP: Change the file directories (4 places) according to where your dataset is saved before running!
+
+  // if(use_dino2)
+  // {
+    // Load the TorchScript model
+    torch::jit::script::Module module;
+  
+    try {
+        module = torch::jit::load("/workspaces/HyperTools/dino_vitb16_model_test.pt");
+        cout<<"Model loaded successfully!"<<endl;
+    }
+    catch (const c10::Error& e) {
+        std::cerr << "Error loading the model\n";
+        return -1;
+    }
+    c10::intrusive_ptr<torch::ivalue::Tuple> output1, output2;
+  // }
+
+  cv::Mat img_1, img_2;
+  cv::Mat R_f, t_f; // the final rotation and tranlation vectors containing the
 
   ofstream myfile;
   myfile.open("results1_1.txt"); // open up predicted
@@ -104,6 +90,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  
   char filename1[200];
   char filename2[200];
 
@@ -146,13 +133,16 @@ int main(int argc, char **argv)
   cout << filename2 << endl;
 
   char text[100];
-  int fontFace = FONT_HERSHEY_PLAIN;
+  int fontFace = cv::FONT_HERSHEY_PLAIN;
   double fontScale = 1;
   int thickness = 1;
   cv::Point textOrg(10, 50);
 
   HyperFunctionsCuvis HyperFunctions1;
-  
+  //making them outside the if statement to avoid issues down the line (less confusion)
+  cv::Mat img_1_c;
+  cv::Mat img_2_c;
+
   if(is_cu3){
   // set up hyperfunctions
   HyperFunctions1.cubert_img = dataset_path + filename1;
@@ -160,20 +150,23 @@ int main(int argc, char **argv)
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
   HyperFunctions1.dist_img = "/workspaces/HyperImages/cornfields/Calibration/distanceCalib__session_000_790_snapshot16423004058237746.cu3";
 
-  // generate false color image for first two images, convert to mat
+  // generate false color image for first two images, convert to mat, layer values are for x20p
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
-  HyperFunctions1.false_img_b = 2;
-  HyperFunctions1.false_img_g = 13;
-  HyperFunctions1.false_img_r = 31;
+  HyperFunctions1.false_img_b = 25;
+  HyperFunctions1.false_img_g = 40;
+  HyperFunctions1.false_img_r = 78;
   HyperFunctions1.GenerateFalseImg();
 
-  Mat img_1_c = HyperFunctions1.false_img;
+  img_1_c = HyperFunctions1.false_img.clone();
 
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
 
-  Mat img_2_c = HyperFunctions1.false_img;
+  // HyperFunctions1.DispFalseImage();
+  // cv::waitKey(0);
+
+  img_2_c = HyperFunctions1.false_img.clone();
 
   // check if images are empty
   if (!img_1_c.data || !img_2_c.data)
@@ -193,42 +186,181 @@ int main(int argc, char **argv)
     std::cout << "Error: img_2_c is empty." << std::endl;
     return -1;
   }
-
-  // convert to grayscale images
-  cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
-  cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
-  img_1 = img_1_c;
-  img_2 = img_2_c;
+  //convert to grayscale images
+  //FIXME: these statements may be a bit redundant because the use_dino does these...
+    cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
+    cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
+    img_1 = img_1_c;
+    img_2 = img_2_c;
   }
   else if(is_png){
-    Mat img_1_c = imread((dataset_path + filename1).c_str());
-    Mat img_2_c = imread((dataset_path + filename2).c_str());
+    img_1_c = imread((dataset_path + filename1).c_str());
+    img_2_c = imread((dataset_path + filename2).c_str());
 
     cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
     cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
     img_1 = img_1_c;
     img_2 = img_2_c;
   }
-  // feature detection, tracking
-  vector<Point2f> points1, points2; // vectors to store the coordinates of the feature points
-  featureDetection(img_1, points1); // detect features in img_1
-  // AGASTDetection(img_1, points1);
 
+  vector<cv::Point2f> points1, points2; // vectors to store the coordinates of the feature points
+
+
+  if(!use_dino2) //do not use dino
+  {
+    // convert to grayscale images
+    cv::cvtColor(img_1_c, img_1_c, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(img_2_c, img_2_c, cv::COLOR_BGR2GRAY);
+    img_1 = img_1_c;
+    img_2 = img_2_c;
+    // feature detection, tracking
+    
+    featureDetection(img_1, points1); // detect features in img_1
+    // AGASTDetection(img_1, points1);
+
+  }
+  else
+  {
+    // run model on image
+    output1 = run_model_on_image(img_1_c, module);
+    output2 = run_model_on_image(img_2_c, module);      
+      
+    cv::Mat features1 = tensorToMat(output1->elements()[0].toTensor());
+    cv::Mat features2 = tensorToMat(output2->elements()[0].toTensor());
+
+    std::vector<cv::KeyPoint> keypoints1, keypoints2;
+    int grid_size = 14;
+
+    int resize_scale = 224;
+
+    // Convert features to keypoints
+    for (int i = 0; i < (resize_scale/14); i++) {
+        for(int j = 0; j < (resize_scale/14); j++) {
+            int row, col;
+
+            row = i * grid_size + grid_size / 2;
+            col = j * grid_size + grid_size / 2;
+            
+            keypoints1.push_back(cv::KeyPoint(cv::Point2f(col, row), 1));
+        }
+    }
+
+    keypoints2 = keypoints1;
+
+    cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+    std::vector< std::vector<cv::DMatch> > knn_matches;
+    //  matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2 );
+    matcher->knnMatch( features1, features2, knn_matches, 2 );
+
+    const float ratio_thresh = 0.9f;
+    std::vector<cv::DMatch> good_matches;
+    for (size_t i = 0; i < knn_matches.size(); i++)
+    {
+    if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+    {
+    good_matches.push_back(knn_matches[i][0]);
+    }
+    }
+
+    cout<<"good matches size "<<good_matches.size()<<endl;
+ 
+    std::vector<cv::KeyPoint> matched_keypoints1, matched_keypoints2;
+
+
+    // need to rescale points1 and points2' the points are in the range of 0-224, need to be rescaled to original image dimensions
+
+    float rescale_amount_x = float(img_1_c.cols) / 224.0;
+    float rescale_amount_y = float(img_1_c.rows ) / 224.0 ;
+    // std::vector<cv::KeyPoint> keypoints1_rescaled, keypoints2_rescaled;
+
+
+    // cout<<img_1_c.cols<<" rows " <<img_1_c.rows<<endl;
+    for (const auto& match : good_matches) {
+        matched_keypoints1.push_back(keypoints1[match.queryIdx]);
+        matched_keypoints2.push_back(keypoints2[match.trainIdx]);
+
+        points1.push_back(keypoints1[match.queryIdx].pt);
+        points2.push_back(keypoints2[match.trainIdx].pt);
+
+        cv::Point2f pt1 = keypoints1[match.queryIdx].pt;
+        pt1.x *= rescale_amount_x;
+        pt1.y *= rescale_amount_y;
+        pt1.x = std::floor(static_cast<int>(pt1.x));
+        pt1.y = std::floor(static_cast<int>(pt1.y));
+        points1.push_back(pt1);
+
+        cv::Point2f pt2 = keypoints2[match.trainIdx].pt;
+        pt2.x *= rescale_amount_x;
+        pt2.y *= rescale_amount_y;
+
+        pt2.x = std::floor(static_cast<int>(pt2.x));
+        pt2.y = std::floor(static_cast<int>(pt2.y));
+        points2.push_back(pt2);
+
+        // cout<<pt1<<" "<<pt2<<endl;
+    }
+
+    // for (const auto& pt : points1) {
+    //     keypoints1_rescaled.push_back(cv::KeyPoint(pt, 1));
+    // }
+
+    // for (const auto& pt : points2) {
+    //     keypoints2_rescaled.push_back(cv::KeyPoint(pt, 1));
+    // }
+
+    // std::vector<cv::DMatch> rescaled_matches;
+    // for (size_t i = 0; i < good_matches.size(); i++) {
+    //     cv::DMatch match = good_matches[i];
+    //     match.queryIdx = i;
+    //     match.trainIdx = i;
+    //     rescaled_matches.push_back(match);
+    // }
+/*
+
+  cv::Mat img1_resize , img2_resize ;
+  cv::resize(img_1_c, img1_resize, cv::Size(224, 224), cv::INTER_LINEAR);
+  cv::resize(img_2_c, img2_resize, cv::Size(224, 224), cv::INTER_LINEAR);
+    cout<<"done here"<<endl;
+     //-- Draw matches
+ cv::Mat img_matches;
+ // get keypoints from grid
+ cv::drawMatches( img1_resize, keypoints1, img2_resize, keypoints2, good_matches, img_matches, cv::Scalar::all(-1),
+ cv::Scalar::all(-1), std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+//  -- Show detected matches
+ cv::imshow("Good Matches", img_matches );
+ cv::waitKey(100);*/
+
+
+  }
   vector<uchar> status;
-  featureTracking(img_1, img_2, points1, points2, status); // track those features to img_2
+  if (!use_dino2)
+  {
+    featureTracking(img_1, img_2, points1, points2, status); // track those features to img_2
+  
+  }
+  else
+  {
+       cv::Mat img1_resize , img2_resize ;
+       
+      cv::resize(img_1_c, img1_resize, cv::Size(224, 224), cv::INTER_LINEAR);
+      cv::resize(img_2_c, img2_resize, cv::Size(224, 224), cv::INTER_LINEAR);
+      featureTracking(img1_resize, img2_resize, points1, points2, status); // track those features to img_2
+  }
+  
+  cout<<"track 1"<<endl;
 
   // WARNING: different sequences in the KITTI VO dataset have different intrinsic/extrinsic parameters
-  double focal = 718.8560;
-  cv::Point2d pp(607.1928, 185.2157);
+  
   // recovering the pose and the essential matrix
-  Mat E, R, t, mask;
-  E = findEssentialMat(points2, points1, focal, pp, RANSAC, 0.999, 1.0, mask);
-  recoverPose(E, points2, points1, R, t, focal, pp, mask);
+  cv::Mat E, R, t, mask;
+  E = cv::findEssentialMat(points2, points1, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+  cv::recoverPose(E, points2, points1, R, t, focal, pp, mask);
 
-  Mat prevImage = img_2;
-  Mat currImage;
-  vector<Point2f> prevFeatures = points2;
-  vector<Point2f> currFeatures;
+  cv::Mat prevImage = img_2;
+  cv::Mat prevImage_c = img_2_c;
+  cv::Mat currImage;
+  vector<cv::Point2f> prevFeatures = points2;
+  vector<cv::Point2f> currFeatures;
 
   char filename[100];
 
@@ -237,10 +369,10 @@ int main(int argc, char **argv)
 
   clock_t begin = clock();
 
-  namedWindow("Road facing camera", WINDOW_AUTOSIZE); // Create a window for display.
-  namedWindow("Trajectory", WINDOW_AUTOSIZE);         // Create a window for display.
+  cv::namedWindow("Road facing camera", cv::WINDOW_AUTOSIZE); // Create a window for display.
+  cv::namedWindow("Trajectory", cv::WINDOW_AUTOSIZE);         // Create a window for display.
 
-  Mat traj = Mat::zeros(600, 600, CV_8UC3);
+  cv::Mat traj = cv::Mat::zeros(600, 600, CV_8UC3);
 
   while ((dp = readdir(dir)) != NULL)
   {
@@ -254,62 +386,215 @@ int main(int argc, char **argv)
       HyperFunctions1.cubert_img = dataset_path + filename;
       HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
       HyperFunctions1.GenerateFalseImg();
-      currImage_c = HyperFunctions1.false_img;
+      cv::currImage_c = HyperFunctions1.false_img.clone();
      }
      else if(is_png){
-      //stringcpy the dataset path and filename
       strcpy(filename, (dataset_path+dp->d_name).c_str());
-      
-      // strcpy(filename, dataset_path.c_str() + dp->d_name);
-      cout << filename << endl;
-      
+      // cout << filename << endl;
       currImage_c = imread(filename);
      }
       // check if current image is empty
-      if (currImage_c.empty())
-      {
-        std::cout << "Error: curr img is empty." << std::endl;
-        return -1;
-      }
+    if (currImage_c.empty())
+    {
+      std::cout << "Error: curr img is empty." << std::endl;
+      return -1;
+    }
     
+      
       // convert to grayscale
-      cvtColor(currImage_c, currImage, COLOR_BGR2GRAY);
+      cv::cvtColor(currImage_c, currImage, cv::COLOR_BGR2GRAY);
       vector<uchar> status;
 
-      featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-      // cout << currFeatures.size() << " " << prevFeatures.size() << endl;
 
+      if(!use_dino2)
+      {
+        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+      }
+      else
+      {
+        featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
+      }
+      cout << currFeatures.size() << " features prev and cur " << prevFeatures.size() << endl;
+
+      
+      
       // redetect if images have less than 5 features
       if (currFeatures.size() < 5 || prevFeatures.size() < 5)
       {
-        featureDetection(prevImage, prevFeatures);
-        featureDetection(currImage, currFeatures);
+        
+        if(!use_dino2)
+        {
+          featureDetection(prevImage, prevFeatures);
+          featureDetection(currImage, currFeatures);
 
-        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
-        // cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
+          featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+        }
+        else
+        {
+          // run model on image
+          cout<<"running model on image..."<<endl;
+          output1 = run_model_on_image(prevImage_c, module);
+          output2 = run_model_on_image(currImage_c, module);
+
+          cv::Mat features1 = tensorToMat(output1->elements()[0].toTensor());
+
+          cv::Mat features2 = tensorToMat(output2->elements()[0].toTensor());
+
+          std::vector<cv::KeyPoint> keypoints1, keypoints2;
+          int grid_size = 14;
+
+          int resize_scale = 224;
+
+          // Convert features to keypoints
+          for (int i = 0; i < (resize_scale/14); i++) {
+              for(int j = 0; j < (resize_scale/14); j++) {
+                  int row, col;
+
+                  row = i * grid_size + grid_size / 2;
+                  col = j * grid_size + grid_size / 2;
+                  
+                  keypoints1.push_back(cv::KeyPoint(cv::Point2f(col, row), 1));
+              }
+          }
+
+          keypoints2 = keypoints1;
+
+          cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+          std::vector< std::vector<cv::DMatch> > knn_matches;
+          //  matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2 );
+          matcher->knnMatch( features1, features2, knn_matches, 2 );
+
+          const float ratio_thresh = 0.9f;
+          std::vector<cv::DMatch> good_matches;
+          for (size_t i = 0; i < knn_matches.size(); i++)
+          {
+          if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+          {
+          good_matches.push_back(knn_matches[i][0]);
+          }
+          }
+
+          cout<<"good matches size place 2: "<<good_matches.size()<<endl;
+      
+          std::vector<cv::KeyPoint> matched_keypoints1, matched_keypoints2;
+
+          for (const auto& match : good_matches) {
+              matched_keypoints1.push_back(keypoints1[match.queryIdx]);
+              matched_keypoints2.push_back(keypoints2[match.trainIdx]);
+
+              points1.push_back(keypoints1[match.queryIdx].pt);
+              points2.push_back(keypoints2[match.trainIdx].pt);
+          }
+
+          prevFeatures = points1;
+          currFeatures = points2;
+
+          featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
+
+        }
+        
+        
+        
+        
+        cout << "(!)----" << currFeatures.size() << " " << prevFeatures.size() << endl;
       }
 
-      E = findEssentialMat(currFeatures, prevFeatures, focal, pp, RANSAC, 0.999, 1.0, mask);
-      // cout << E.rows << " " << E.cols << endl;
+      E = cv::findEssentialMat(currFeatures, prevFeatures, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+      cout << E.rows << " " << E.cols << endl;
 
       // redetect if E is not 3x3
       if (E.rows != 3 || E.cols != 3)
       {
-        // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
-        // cout << "trigerring redection" << endl;
-        featureDetection(prevImage, prevFeatures);
-        // AGASTDetection(prevImage, prevFeatures);
-        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+        cout<<"E is not 3x3"<<endl;
+        
+        
+        if (!use_dino2)
+        {
+          // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
+          // cout << "trigerring redection" << endl;
+          featureDetection(prevImage, prevFeatures);
+          // AGASTDetection(prevImage, prevFeatures);
+          featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+
+        
+        }
+        else
+        {
+
+          // c10::intrusive_ptr<torch::ivalue::Tuple> output1, output2;
+          // run model on image
+          cout<<"running model on image..."<<endl;
+          output1 = run_model_on_image(prevImage_c, module);
+          output2 = run_model_on_image(currImage_c, module);
+
+          cv::Mat features1 = tensorToMat(output1->elements()[0].toTensor());
+
+          cv::Mat features2 = tensorToMat(output2->elements()[0].toTensor());
+
+          std::vector<cv::KeyPoint> keypoints1, keypoints2;
+          int grid_size = 14;
+
+          int resize_scale = 224;
+
+          // Convert features to keypoints
+          for (int i = 0; i < (resize_scale/14); i++) {
+              for(int j = 0; j < (resize_scale/14); j++) {
+                  int row, col;
+
+                  row = i * grid_size + grid_size / 2;
+                  col = j * grid_size + grid_size / 2;
+                  
+                  keypoints1.push_back(cv::KeyPoint(cv::Point2f(col, row), 1));
+              }
+          }
+
+          keypoints2 = keypoints1;
+
+          cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+          std::vector< std::vector<cv::DMatch> > knn_matches;
+          //  matcher->knnMatch( descriptors1, descriptors2, knn_matches, 2 );
+          matcher->knnMatch( features1, features2, knn_matches, 2 );
+
+          const float ratio_thresh = 0.9f;
+          std::vector<cv::DMatch> good_matches;
+          for (size_t i = 0; i < knn_matches.size(); i++)
+          {
+          if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+          {
+          good_matches.push_back(knn_matches[i][0]);
+          }
+          }
+
+          cout<<"good matches size place 2: "<<good_matches.size()<<endl;
+      
+          std::vector<cv::KeyPoint> matched_keypoints1, matched_keypoints2;
+
+          for (const auto& match : good_matches) {
+              matched_keypoints1.push_back(keypoints1[match.queryIdx]);
+              matched_keypoints2.push_back(keypoints2[match.trainIdx]);
+
+              points1.push_back(keypoints1[match.queryIdx].pt);
+              points2.push_back(keypoints2[match.trainIdx].pt);
+          }
+
+          prevFeatures = points1;
+          currFeatures = points2;
+
+          featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
+
+        }
 
         // set prev image to current image and continue to next iteration
         prevImage = currImage.clone();
+        prevImage_c = currImage_c.clone();
         prevFeatures = currFeatures;
         continue;
+
       }
 
       recoverPose(E, currFeatures, prevFeatures, R, t, focal, pp, mask);
 
-      Mat prevPts(2, prevFeatures.size(), CV_64F), currPts(2, currFeatures.size(), CV_64F);
+      cv::Mat prevPts(2, prevFeatures.size(), CV_64F), currPts(2, currFeatures.size(), CV_64F);
 
       for (int i = 0; i < prevFeatures.size(); i++)
       { // this (x,y) combination makes sense as observed from the source code of triangulatePoints on GitHub
@@ -358,9 +643,9 @@ int main(int argc, char **argv)
 
       
       // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
-      if (prevFeatures.size() < MIN_NUM_FEAT)
+      if (prevFeatures.size() < MIN_NUM_FEAT && !use_dino2)
       {
-        // cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
+        cout << "Number of tracked features reduced to " << prevFeatures.size() << endl;
         // cout << "trigerring redection" << endl;
         featureDetection(prevImage, prevFeatures);
         // AGASTDetection(prevImage, prevFeatures);
@@ -369,28 +654,29 @@ int main(int argc, char **argv)
       }
 
       prevImage = currImage.clone();
+      prevImage_c = currImage_c.clone();
       prevFeatures = currFeatures;
 
       int x = int(t_f.at<double>(0)) + 300;
       int y = int(t_f.at<double>(2)) + 100;
-      circle(traj, Point(x, y), 1, CV_RGB(255, 0, 0), 2);
+      circle(traj, cv::Point(x, y), 1, CV_RGB(255, 0, 0), 2);
 
-      rectangle(traj, Point(10, 30), Point(550, 50), CV_RGB(0, 0, 0), FILLED);
+      rectangle(traj, cv::Point(10, 30), cv::Point(550, 50), CV_RGB(0, 0, 0), cv::FILLED);
       // display label on trajectory
 
       sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
-      putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+      putText(traj, text, textOrg, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
 
       imshow("Road facing camera", currImage_c);
       imshow("Trajectory", traj);
 
-      waitKey(1);
+      cv::waitKey(1);
     }  
   }
 
   clock_t end = clock();
   double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-  cout << "Total time taken: " << elapsed_secs << "s" << endl;
+  cout << "Total CPU time taken: " << elapsed_secs << "s" << endl;
 
   // cout << R_f << endl;
   // cout << t_f << endl;

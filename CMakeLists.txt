@@ -29,6 +29,13 @@ if (use_cuvis)
 endif()
 
 
+# torch stuff
+list(APPEND CMAKE_MODULE_PATH "/torch/libtorch/share/cmake")
+set(Torch_DIR "/torch/libtorch/share/cmake/Torch/")
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -lm -ldl")
+
 file(GLOB viso
     "src/*.h"
     "src/*.cpp"
@@ -36,5 +43,5 @@ file(GLOB viso
 
 if (use_cuvis)
     add_executable(vo ${viso})
-    target_link_libraries(vo PRIVATE cuvis::cpp ${OpenCV_LIBS})
+    target_link_libraries(vo PRIVATE cuvis::cpp ${OpenCV_LIBS}  ${TORCH_LIBRARIES})
 endif()
