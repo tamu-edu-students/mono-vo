@@ -75,10 +75,10 @@ int main(int argc, char **argv)
   cv::Mat R_f, t_f; // the final rotation and tranlation vectors containing the
 
   ofstream myfile;
-  myfile.open("results1_1.txt"); // open up predicted
+  myfile.open("./results/results1_1.txt"); // open up predicted
 
   ofstream ground_truth;
-  ground_truth.open("ground_truth.txt");
+  ground_truth.open("./results/ground_truth.txt");
 
   double scale = 1.00;
   DIR *dir;
