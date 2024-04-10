@@ -44,7 +44,9 @@ int main(int argc, char **argv)
 
 
   // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
-  string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+  // string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+  string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
+
   // string dataset_path = "/workspaces/HyperImages/wextel-1/";
 
   // calibration parameters for camera
@@ -75,6 +77,9 @@ int main(int argc, char **argv)
   ofstream myfile;
   myfile.open("results1_1.txt"); // open up predicted
 
+  ofstream ground_truth;
+  ground_truth.open("ground_truth.txt");
+
   double scale = 1.00;
   DIR *dir;
   struct dirent *dp;
@@ -92,10 +97,18 @@ int main(int argc, char **argv)
   // read the first two frames from the dataset
   // image 1
   dp = readdir(dir);
+  bool is_cu3 = false;
+  bool is_png = false;
   while ((dp = readdir(dir)) != NULL)
   {
     if (strstr(dp->d_name, ".cu3") != NULL)
     {
+      is_cu3 = true;
+      break;
+    }
+    else if (strstr(dp->d_name, ".png") != NULL)
+    {
+      is_png = true;
       break;
     }
   }
@@ -106,6 +119,10 @@ int main(int argc, char **argv)
   while ((dp = readdir(dir)) != NULL)
   {
     if (strstr(dp->d_name, ".cu3") != NULL)
+    {
+      break;
+    }
+    else if (strstr(dp->d_name, ".png") != NULL)
     {
       break;
     }
@@ -120,6 +137,11 @@ int main(int argc, char **argv)
 
   // set up hyperfunctions
   HyperFunctionsCuvis HyperFunctions1;
+  cv::Mat img_1_c;
+  cv::Mat img_2_c;
+
+  if(is_cu3){
+  // set up hyperfunctions
   HyperFunctions1.cubert_img = dataset_path + filename1;
   HyperFunctions1.dark_img = "/workspaces/HyperImages/cornfields/Calibration/dark__session_002_003_snapshot16423119279414228.cu3";
   HyperFunctions1.white_img = "/workspaces/HyperImages/cornfields/Calibration/white__session_002_752_snapshot16423136896447489.cu3";
@@ -132,16 +154,18 @@ int main(int argc, char **argv)
   HyperFunctions1.false_img_r = 78;
   HyperFunctions1.GenerateFalseImg();
 
-  cv::Mat img_1_c = HyperFunctions1.false_img.clone();
+  img_1_c = HyperFunctions1.false_img.clone();
 
   HyperFunctions1.cubert_img = dataset_path + filename2;
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
 
-  // HyperFunctions1.DispFalseImage();
-  // cv::waitKey(0);
-
-  cv::Mat img_2_c = HyperFunctions1.false_img.clone();
+  img_2_c = HyperFunctions1.false_img.clone();
+  }
+  else if(is_png){
+    img_1_c = cv::imread((dataset_path + filename1).c_str());
+    img_2_c = cv::imread((dataset_path + filename2).c_str());
+  }
 
   // check if images are empty
   if (!img_1_c.data || !img_2_c.data)
@@ -336,15 +360,19 @@ int main(int argc, char **argv)
 
   while ((dp = readdir(dir)) != NULL)
   {
-    if (strstr(dp->d_name, ".cu3") != NULL)
-    {
-      // generate false color image for current image, convert to mat
-      strcpy(filename, dp->d_name);
-      HyperFunctions1.cubert_img = dataset_path + filename;
-      HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
-      HyperFunctions1.GenerateFalseImg();
-      cv::Mat currImage_c = HyperFunctions1.false_img.clone();
-
+    cv::Mat currImage_c;
+    if (strstr(dp->d_name, ".cu3") != NULL || strstr(dp->d_name, ".png") != NULL){
+      if(is_cu3){
+        strcpy(filename, dp->d_name);
+        HyperFunctions1.cubert_img = dataset_path + filename;
+        HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+        HyperFunctions1.GenerateFalseImg();
+        currImage_c = HyperFunctions1.false_img.clone();
+      }
+      else if(is_png){
+        strcpy(filename, (dataset_path+dp->d_name).c_str());
+        currImage_c = cv::imread(filename);
+      }
       // check if current image is empty
       if (currImage_c.empty())
       {
@@ -574,7 +602,18 @@ int main(int argc, char **argv)
       {
         // cout << "scale below 0.1, or incorrect translation" << endl;
       }
+      if(is_cu3){
+        char* const measurementLoc =  const_cast<char*>(HyperFunctions1.cubert_img.c_str());
 
+        cuvis::Measurement mesu(measurementLoc);
+      
+        const cuvis::Measurement::gps_data_t* gps_data = mesu.get_gps();
+        // Iterate over the GPS data and print the coordinates
+        for (const auto& pair : *gps_data) {
+            // std::cout << "Key: " << pair.first << ", Latitude: " << pair.second.latitude << ", Longitude: " << pair.second.longitude << std::endl;
+            ground_truth << pair.second.latitude << " " << pair.second.longitude << endl;
+        }
+      }
       // lines for printing results
       myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
 
