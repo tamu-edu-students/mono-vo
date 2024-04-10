@@ -44,8 +44,9 @@ int main(int argc, char **argv)
 
 
   // string dataset_path  = "/workspaces/HyperImages/teagarden/session_000_001k/";
-//   string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
-string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
+  // string dataset_path = "/workspaces/HyperImages/cornfields/session_002/";
+  string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
+
   // string dataset_path = "/workspaces/HyperImages/wextel-1/";
 
   // calibration parameters for camera
@@ -76,7 +77,6 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
   ofstream myfile;
   myfile.open("results1_1.txt"); // open up predicted
 
-  //TODO: make file for ground truth
   ofstream ground_truth;
   ground_truth.open("ground_truth.txt");
 
@@ -99,12 +99,11 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
   dp = readdir(dir);
   bool is_cu3 = false;
   bool is_png = false;
-
   while ((dp = readdir(dir)) != NULL)
   {
-    if (strstr(dp->d_name, ".cu3") != NULL) 
+    if (strstr(dp->d_name, ".cu3") != NULL)
     {
-      is_cu3 = true; //this sets our entire control flow for later on
+      is_cu3 = true;
       break;
     }
     else if (strstr(dp->d_name, ".png") != NULL)
@@ -114,7 +113,7 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
     }
   }
   strcpy(filename1, dp->d_name);
-  cout << filename1 << endl;
+
   // image 2
   dp = readdir(dir);
   while ((dp = readdir(dir)) != NULL)
@@ -127,10 +126,8 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
     {
       break;
     }
-    
   }
   strcpy(filename2, dp->d_name);
-  cout << filename2 << endl;
 
   char text[100];
   int fontFace = cv::FONT_HERSHEY_PLAIN;
@@ -138,8 +135,8 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
   int thickness = 1;
   cv::Point textOrg(10, 50);
 
+  // set up hyperfunctions
   HyperFunctionsCuvis HyperFunctions1;
-  //making them outside the if statement to avoid issues down the line (less confusion)
   cv::Mat img_1_c;
   cv::Mat img_2_c;
 
@@ -163,10 +160,12 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
   HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
   HyperFunctions1.GenerateFalseImg();
 
-  // HyperFunctions1.DispFalseImage();
-  // cv::waitKey(0);
-
   img_2_c = HyperFunctions1.false_img.clone();
+  }
+  else if(is_png){
+    img_1_c = cv::imread((dataset_path + filename1).c_str());
+    img_2_c = cv::imread((dataset_path + filename2).c_str());
+  }
 
   // check if images are empty
   if (!img_1_c.data || !img_2_c.data)
@@ -186,33 +185,18 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
     std::cout << "Error: img_2_c is empty." << std::endl;
     return -1;
   }
-  //convert to grayscale images
-  //FIXME: these statements may be a bit redundant because the use_dino does these...
-    cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
-    cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
-    img_1 = img_1_c;
-    img_2 = img_2_c;
-  }
-  else if(is_png){
-    img_1_c = imread((dataset_path + filename1).c_str());
-    img_2_c = imread((dataset_path + filename2).c_str());
-
-    cvtColor(img_1_c, img_1_c, COLOR_BGR2GRAY);
-    cvtColor(img_2_c, img_2_c, COLOR_BGR2GRAY);
-    img_1 = img_1_c;
-    img_2 = img_2_c;
-  }
 
   vector<cv::Point2f> points1, points2; // vectors to store the coordinates of the feature points
 
 
-  if(!use_dino2) //do not use dino
+  if(!use_dino2)
   {
     // convert to grayscale images
     cv::cvtColor(img_1_c, img_1_c, cv::COLOR_BGR2GRAY);
     cv::cvtColor(img_2_c, img_2_c, cv::COLOR_BGR2GRAY);
     img_1 = img_1_c;
     img_2 = img_2_c;
+
     // feature detection, tracking
     
     featureDetection(img_1, points1); // detect features in img_1
@@ -376,30 +360,26 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
 
   while ((dp = readdir(dir)) != NULL)
   {
-    Mat currImage_c;
-
-    if (strstr(dp->d_name, ".cu3") != NULL || strstr(dp->d_name, ".png") != NULL) //TODO: change this to allow for png files to be read in
-    {
-     if(is_cu3){
-      // generate false color image for current image, convert to mat
-      strcpy(filename, dp->d_name);
-      HyperFunctions1.cubert_img = dataset_path + filename;
-      HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
-      HyperFunctions1.GenerateFalseImg();
-      cv::currImage_c = HyperFunctions1.false_img.clone();
-     }
-     else if(is_png){
-      strcpy(filename, (dataset_path+dp->d_name).c_str());
-      // cout << filename << endl;
-      currImage_c = imread(filename);
-     }
+    cv::Mat currImage_c;
+    if (strstr(dp->d_name, ".cu3") != NULL || strstr(dp->d_name, ".png") != NULL){
+      if(is_cu3){
+        strcpy(filename, dp->d_name);
+        HyperFunctions1.cubert_img = dataset_path + filename;
+        HyperFunctions1.ReprocessImage(HyperFunctions1.cubert_img);
+        HyperFunctions1.GenerateFalseImg();
+        currImage_c = HyperFunctions1.false_img.clone();
+      }
+      else if(is_png){
+        strcpy(filename, (dataset_path+dp->d_name).c_str());
+        currImage_c = cv::imread(filename);
+      }
       // check if current image is empty
-    if (currImage_c.empty())
-    {
-      std::cout << "Error: curr img is empty." << std::endl;
-      return -1;
-    }
-    
+      if (currImage_c.empty())
+      {
+        std::cout << "Error: curr img is empty." << std::endl;
+        return -1;
+      }
+
       
       // convert to grayscale
       cv::cvtColor(currImage_c, currImage, cv::COLOR_BGR2GRAY);
@@ -408,10 +388,11 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
 
       if(!use_dino2)
       {
-        featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
+      featureTracking(prevImage, currImage, prevFeatures, currFeatures, status);
       }
       else
       {
+
         featureTracking(prevImage_c, currImage_c, prevFeatures, currFeatures, status);
       }
       cout << currFeatures.size() << " features prev and cur " << prevFeatures.size() << endl;
@@ -621,27 +602,21 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
       {
         // cout << "scale below 0.1, or incorrect translation" << endl;
       }
-      //TODO: lines for printing ground truth
-      //we skip ground truth for png files
-      // Get the GPS data
       if(is_cu3){
         char* const measurementLoc =  const_cast<char*>(HyperFunctions1.cubert_img.c_str());
 
-      cuvis::Measurement mesu(measurementLoc);
+        cuvis::Measurement mesu(measurementLoc);
       
-      const cuvis::Measurement::gps_data_t* gps_data = mesu.get_gps();
-
-      // Iterate over the GPS data and print the coordinates
-      for (const auto& pair : *gps_data) {
-          // std::cout << "Key: " << pair.first << ", Latitude: " << pair.second.latitude << ", Longitude: " << pair.second.longitude << std::endl;
-          ground_truth << pair.second.latitude << " " << pair.second.longitude << endl;
-      }
+        const cuvis::Measurement::gps_data_t* gps_data = mesu.get_gps();
+        // Iterate over the GPS data and print the coordinates
+        for (const auto& pair : *gps_data) {
+            // std::cout << "Key: " << pair.first << ", Latitude: " << pair.second.latitude << ", Longitude: " << pair.second.longitude << std::endl;
+            ground_truth << pair.second.latitude << " " << pair.second.longitude << endl;
+        }
       }
       // lines for printing results
       myfile << t_f.at<double>(0) << " " << t_f.at<double>(1) << " " << t_f.at<double>(2) << endl;
 
-
-      
       // a redetection is triggered in case the number of feautres being trakced go below a particular threshold
       if (prevFeatures.size() < MIN_NUM_FEAT && !use_dino2)
       {
@@ -671,7 +646,7 @@ string dataset_path = "/workspaces/HyperTools/submodules/mono-vo/creek_2/";
       imshow("Trajectory", traj);
 
       cv::waitKey(1);
-    }  
+    }
   }
 
   clock_t end = clock();
